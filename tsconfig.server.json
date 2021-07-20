@@ -2,7 +2,6 @@
     "extends": "./tsconfig.json",
     "exclude": ["src/client/"],
     "compilerOptions": {
-        "outDir": "./dist/server",
         "target": "es6",
     },
 }
