@@ -14,6 +14,7 @@ async function requestDevice() {
 }
 
 async function refreshDevices() {
+    console.log("Refreshing device list");
     document.querySelector('div#devices').childNodes.forEach(c => c.remove());
     const devices = await AdbWebUsbBackend.getDevices();
     devices.forEach((device) => {
@@ -45,39 +46,40 @@ async function connectDevice(device: AdbWebUsbBackend) {
     readLoop(device, ws);
 }
 
-function getPayloadLength(header: ArrayBuffer) {
-    let view = new DataView(header);
-    return view.getUint32(12 /* byteOffset */, true /* littleEndian */);
+function getPayloadLength(headerBuffer: ArrayBuffer) {
+    let header = new DataView(headerBuffer);
+    return header.getUint32(12 /* byteOffset */, true /* littleEndian */);
 }
 
 async function readLoop(backend: AdbWebUsbBackend, ws: WebSocket) {
-    // Read header
-    let buffer: ArrayBuffer = await backend.read(24);
+    do {
+        // Read header
+        let buffer: ArrayBuffer = await backend.read(24);
 
-    // Detect boundary
-    // Note that it relies on the backend to only return data from one write operation
-    while (buffer.byteLength !== 24) {
-        // Maybe it's a payload from last connection.
-        // Ignore and try again
-        buffer = await backend.read(24);
-    }
-    ws.send(buffer);
-
-    // let packetHeader = await parsePacketHeader(buffer, backend);
-    let payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
-
-    console.log("==> header", payload_length);
-
-    // Read payload as well
-    while (payload_length > 0) {
-        buffer = await backend.read(payload_length);
+        // Detect boundary
+        // Note that it relies on the backend to only return data from one write operation
+        while (buffer.byteLength !== 24) {
+            // Maybe it's a payload from last connection.
+            // Ignore and try again
+            buffer = await backend.read(24);
+        }
         ws.send(buffer);
 
-        console.log(`==> payload ${payload_length} bytes`);
-        payload_length -= buffer.byteLength;
-    }
+        // let packetHeader = await parsePacketHeader(buffer, backend);
+        let payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
 
-    readLoop(backend, ws);
+        console.log("==> header", payload_length);
+
+        // Read payload as well
+        while (payload_length > 0) {
+            buffer = await backend.read(payload_length);
+            ws.send(buffer);
+
+            console.log(`==> payload ${payload_length} bytes`);
+            payload_length -= buffer.byteLength;
+        }
+    }
+    while (true);
 }
 
 
@@ -89,7 +91,7 @@ function writeLoopCallback(backend: AdbWebUsbBackend, ws: WebSocket): ((e: Messa
 
     let lastPromise = Promise.resolve();
 
-    let handleEvent = async (data: Blob) => {
+    let handleWriteData = async (data: Blob) => {
         let buffer: ArrayBuffer;
         
         switch (state) {
@@ -111,15 +113,15 @@ function writeLoopCallback(backend: AdbWebUsbBackend, ws: WebSocket): ((e: Messa
                 }
 
                 if (data.size > 24) {
-                    await handleEvent(data.slice(24));
+                    await handleWriteData(data.slice(24));
                 }
 
                 break;
             case AWAITING_PAYLOAD:
                 if (data.size > payload_length) {
                     let boundry = payload_length;
-                    await handleEvent(data.slice(0, boundry));
-                    await handleEvent(data.slice(boundry));
+                    await handleWriteData(data.slice(0, boundry));
+                    await handleWriteData(data.slice(boundry));
                 }
                 else {
                     buffer = await data.arrayBuffer();
@@ -138,7 +140,7 @@ function writeLoopCallback(backend: AdbWebUsbBackend, ws: WebSocket): ((e: Messa
     }
 
     return (event) => {
-        lastPromise = lastPromise.then(async () => { await handleEvent(event.data); });
+        lastPromise = lastPromise.then(async () => { await handleWriteData(event.data); });
     }
 }
 
