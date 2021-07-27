@@ -3,6 +3,7 @@ import * as net from 'net';
 import * as path from 'path';
 import * as express from 'express';
 import * as WebSocket from 'ws';
+import { monitorAdbServer, addAdbDevice, removeAdbDevice } from './adbConnection';
 
 const port = 3000;
 const app = express();
@@ -17,21 +18,30 @@ let wsStream: any;
 wss.on('connection', (ws: WebSocket) => {
     console.log("Got a socket connection");
     wsStream = WebSocket.createWebSocketStream(ws);
-    ws.on("open", () => console.log("OPEN"));
-    ws.on("close", () => console.log("CLOSED"));
-})
 
-net.createServer((socket: net.Socket) => {
-    if (!wsStream) {
-        socket.end();
-        return;
-    };
+    let port: Number;
+    let server = net.createServer((socket: net.Socket) => {
+        socket.pipe(wsStream);
+        wsStream.pipe(socket);
 
-    socket.pipe(wsStream);
-    wsStream.pipe(socket);
+        socket.on("close", (hadError) => {
+            socket.unpipe(wsStream);
+            wsStream.unpipe(socket);
+        });
+    }).listen(0, () => {
+        port = (server.address() as net.AddressInfo).port;
+        console.log(`New device: ${port}`);
 
-    console.log("Got a connection on 5050");
-}).listen(5050);
+        addAdbDevice(port);
+    });
 
+    ws.on("close", () => {
+        console.log(`Device lost: ${port}`);
+
+        server.close();
+        removeAdbDevice(port);
+    });
+});
 
 server.listen(port, () => console.log(`Started listening on http://localhost:${port}`));
+monitorAdbServer();
