@@ -3,7 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   mode: "development",
-  entry: path.resolve(__dirname, './src/client/index.ts'),
+  entry: path.resolve(__dirname, './src/client/index.tsx'),
   devtool: 'inline-source-map',
   module: {
     rules: [
@@ -18,9 +18,21 @@ module.exports = {
     extensions: ['.tsx', '.ts', '.js'],
   },
   output: {
-    filename: 'bundle.[fullhash].js',
+    filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'dist', 'client'),
     clean: true
+  },
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        'vendor': {
+            name: 'vendor',
+            test: /[\\/]node_modules[\\/]/,
+            chunks: 'initial',
+            priority: 1
+        },
+      }
+    }
   },
   plugins: [
       new HtmlWebpackPlugin({
