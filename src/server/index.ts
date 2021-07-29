@@ -18,10 +18,14 @@ let wsStream: any;
 wss.on('connection', (ws: WebSocket) => {
     console.log("Got a socket connection");
     wsStream = WebSocket.createWebSocketStream(ws);
+    wsStream.on("error", () => {
+        // Do nothing
+        // Sometimes this can happen when trying to write to the socket after it is closed in the process of closing the connection. Ignore.
+    });
 
     let port: Number;
     let server = net.createServer((socket: net.Socket) => {
-        socket.pipe(wsStream);
+        socket.pipe(wsStream, {end: false});
         wsStream.pipe(socket);
 
         socket.on("close", (hadError) => {
@@ -30,13 +34,13 @@ wss.on('connection', (ws: WebSocket) => {
         });
     }).listen(0, () => {
         port = (server.address() as net.AddressInfo).port;
-        console.log(`New device: ${port}`);
+        console.log(port, "New device");
 
         addAdbDevice(port);
     });
 
     ws.on("close", () => {
-        console.log(`Device lost: ${port}`);
+        console.log(port, "Device lost");
 
         server.close();
         removeAdbDevice(port);

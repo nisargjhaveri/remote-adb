@@ -8,6 +8,14 @@ async function requestDevice() {
 
 let connectedDevices: {[key: string]: AdbWebUsbBackend} = {};
 
+async function disconnectDevice(device: AdbWebUsbBackend) {
+    device.dispose();
+
+    delete connectedDevices[device.serial];
+
+    refreshDevices();
+}
+
 async function refreshDevices() {
     console.log("Refreshing device list");
     document.querySelector('div#devices').childNodes.forEach(c => c.remove());
@@ -32,18 +40,14 @@ async function refreshDevices() {
             button.value = "Disconnect";
             button.type = "button";
             button.addEventListener('click', async () => {
-                device.dispose();
-
-                delete connectedDevices[device.serial];
-
-                refreshDevices();
+                disconnectDevice(device);
             });
         }
         else {
             button.value = "Connect";
             button.type = "button";
             button.addEventListener('click', async () => {
-                await connectDevice(device);
+                await connectDevice(device, disconnectDevice);
 
                 connectedDevices[device.serial] = device;
                 device.onDisconnected(() => {

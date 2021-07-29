@@ -14,6 +14,40 @@ async function adbMonitorConnected(socket: net.Socket) {
     adbConnection = socket;
     console.log("adb connected");
 
+    let gotSuccessResponse = false;
+    let success = false;
+    adbConnection.on("data", (data) => {
+        let header = data.slice(0, 4).toString("utf8");
+        if (!gotSuccessResponse) {
+            if (header === "OKAY") {
+                gotSuccessResponse = true;
+                success = true;
+                console.log("track-devices", "OKAY");
+            }
+            else if (header === "FAIL") {
+                gotSuccessResponse = true;
+                success = false;
+
+                // parse the failure message
+                let length = parseInt(data.slice(4, 8).toString("utf8"), 16);
+                let message = data.slice(8, 4 + length).toString("utf8");
+                console.log("track-devices", "FAIL", message);
+            }
+            else {
+                // Something wrong
+                socket.end();
+            }
+        }
+        else {
+            let length = parseInt(header, 16);
+            let message = data.slice(4, 4 + length).toString("utf8");
+            console.log("track-devices");
+            console.log(message);
+        }
+    });
+
+    adbConnection.write(adbMessage(`host:track-devices-l`));
+
     addAllAdbDevices();
 }
 
@@ -116,7 +150,6 @@ async function adbConnect(port: Number, disconnect?: boolean) {
             let message = data.slice(4, 4 + length).toString("utf8");
             console.log(port, message);
         }
-
     });
 
     socket.on("error", (e) => {

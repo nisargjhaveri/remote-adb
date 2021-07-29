@@ -1,6 +1,6 @@
 import { AdbWebUsbBackend } from '@yume-chan/adb-backend-webusb';
 
-export async function connectDevice(device: AdbWebUsbBackend) {
+export async function connectDevice(device: AdbWebUsbBackend, disconnect: (device: AdbWebUsbBackend) => void) {
     await device.connect();
     console.log(device.serial, "connected", device);
 
@@ -9,6 +9,10 @@ export async function connectDevice(device: AdbWebUsbBackend) {
     const ws = new WebSocket(wsUrl.href);
 
     ws.onmessage = writeLoopCallback(device, ws);
+    ws.onclose = () => { 
+        console.log(device.serial, "WebSocket closed. Closing device.");
+        disconnect(device); 
+    }
     readLoop(device, ws).then(() => {
         console.log(device.serial, "Closing WebSocket");
         ws.close();
@@ -16,8 +20,27 @@ export async function connectDevice(device: AdbWebUsbBackend) {
 }
 
 function getPayloadLength(headerBuffer: ArrayBuffer) {
+    // Get the fourth 32 bit integer from the header. This is the payload length
     let header = new DataView(headerBuffer);
     return header.getUint32(12 /* byteOffset */, true /* littleEndian */);
+}
+
+function wsSendOrIgnore(ws: WebSocket, buffer: ArrayBuffer, logTag: string) {
+    // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
+    if (ws.readyState !== ws.OPEN) {
+        console.warn(logTag, "WebSocket is not open. Ignoring sent data");
+        return;
+    }
+    ws.send(buffer);
+}
+
+function backendWriteOrIgnore(backend: AdbWebUsbBackend, buffer: ArrayBuffer, logTag: string) {
+    // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
+    if (!backend.connected) {
+        console.warn(logTag, "Device is not connected. Ignoring sent data");
+        return;
+    }
+    backend.write(buffer);
 }
 
 async function readLoop(backend: AdbWebUsbBackend, ws: WebSocket) {
@@ -33,7 +56,7 @@ async function readLoop(backend: AdbWebUsbBackend, ws: WebSocket) {
                 // Ignore and try again
                 buffer = await backend.read(24);
             }
-            ws.send(buffer);
+            wsSendOrIgnore(ws, buffer, backend.serial);
 
             // let packetHeader = await parsePacketHeader(buffer, backend);
             let payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
@@ -43,13 +66,13 @@ async function readLoop(backend: AdbWebUsbBackend, ws: WebSocket) {
             // Read payload as well
             while (payload_length > 0) {
                 buffer = await backend.read(payload_length);
-                ws.send(buffer);
+                wsSendOrIgnore(ws, buffer, backend.serial);
 
                 console.log(backend.serial, `==> payload ${payload_length} bytes`);
                 payload_length -= buffer.byteLength;
             }
         }
-        while (backend.connected && ws.readyState === ws.OPEN);
+        while (backend.connected && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN));
     }
     catch (e) {
         console.error(backend.serial, e);
@@ -77,7 +100,7 @@ function writeLoopCallback(backend: AdbWebUsbBackend, ws: WebSocket): ((e: Messa
                 }
 
                 buffer = await data.slice(0, 24).arrayBuffer();
-                backend.write(buffer);
+                backendWriteOrIgnore(backend, buffer, backend.serial);
 
                 // let packetHeader = await parsePacketHeader(buffer, backend);
                 payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
@@ -101,7 +124,7 @@ function writeLoopCallback(backend: AdbWebUsbBackend, ws: WebSocket): ((e: Messa
                 }
                 else {
                     buffer = await data.arrayBuffer();
-                    backend.write(buffer);
+                    backendWriteOrIgnore(backend, buffer, backend.serial);
                     console.log(backend.serial, `<== payload ${payload_length} bytes`);
 
                     payload_length -= data.size;
