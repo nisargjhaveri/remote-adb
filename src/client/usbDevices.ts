@@ -5,21 +5,19 @@ let refreshCallback = (devices: UsbDevice[]) => {}
 
 export class UsbDevice {
     private backend: AdbWebUsbBackend;
+    
+    public serial: string;
+    public name: string;
 
     constructor(backend: AdbWebUsbBackend) {
         this.backend = backend;
+
+        this.serial = backend.serial;
+        this.name = backend.name;
     }
 
     get connected() {
         return this.backend.connected;
-    }
-
-    get serial() {
-        return this.backend.serial;
-    }
-
-    get name() {
-        return this.backend.name;
     }
 
     connect = async () => {

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Label, Separator, Stack, Text } from '@fluentui/react';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
+import { NeutralColors } from '@fluentui/theme';
 
 import { UsbDevice, monitorDevices, requestDevice } from '../usbDevices';
-import { Label, Separator, Stack, Text } from '@fluentui/react';
 
 import { initializeIcons } from '@fluentui/font-icons-mdl2';
 initializeIcons();
@@ -12,12 +13,12 @@ function Device(props: {device: UsbDevice}) {
 
     return (
         <div>
-            <Stack horizontal>
+            <Stack horizontal tokens={{childrenGap: 'l1'}}>
                 {device.connected ? 
                     <DefaultButton text="Disconnect" onClick={device.disconnect} /> :
                     <PrimaryButton text="Connect" onClick={device.connect} />
                 }
-                <Label style={{marginLeft: 32}}>{device.serial} - {device.name}</Label>
+                <Label>{device.name} ({device.serial})</Label>
             </Stack>
         </div>
     )
@@ -33,16 +34,24 @@ export function App() {
     return (
         <div style={{maxWidth: 650, margin: "0 auto"}}>
             {/* <Text variant="large">Welcome</Text> */}
-            <div style={{marginTop: 64}}>
-                <div style={{marginBottom: 48}}>
-                    <Text style={{marginRight: 12}}>Device not visible in the list below?</Text>
+            <Stack tokens={{padding: 'l2', childrenGap: 'l2'}}>
+                <Stack.Item align="center">
+                    <Text variant="mediumPlus" style={{color: NeutralColors.gray130}}>Share connected Android devices for debugging on the server</Text>
+                </Stack.Item>
+                <Stack horizontal tokens={{childrenGap: 'm', padding: 's'}} horizontalAlign="center" verticalAlign="center">
+                    <Text>Device not visible in the list below?</Text>
                     <PrimaryButton text="Add device" id="request" onClick={requestDevice} iconProps={{iconName: "Add"}} />
-                </div>
+                </Stack>
                 <Separator>Connected Devices</Separator>
-                <Stack style={{marginTop: 12}}>
+                {!devices.length && (
+                    <Stack.Item align="center">
+                        <Text style={{color: NeutralColors.gray90}}>No devices found</Text>
+                    </Stack.Item>
+                )}
+                <Stack tokens={{childrenGap: 'm', padding: 's'}}>
                     {devices.map((device) => (<Device device={device} key={device.serial} />))}
                 </Stack>
-            </div>
+            </Stack>
         </div>
     );
 }
