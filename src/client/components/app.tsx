@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Label, Separator, Stack, Text } from '@fluentui/react';
+import { Separator } from '@fluentui/react/lib/Separator';
+import { Stack } from '@fluentui/react/lib/Stack';
+import { Text } from '@fluentui/react/lib/Text';
+import { Label } from '@fluentui/react/lib/Label';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
-import { NeutralColors } from '@fluentui/theme';
+import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
 
 import { UsbDevice, monitorDevices, requestDevice } from '../usbDevices';
 
