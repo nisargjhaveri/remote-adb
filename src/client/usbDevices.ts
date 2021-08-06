@@ -1,42 +1,8 @@
 import { AdbWebUsbBackend, AdbWebUsbBackendWatcher } from '@yume-chan/adb-backend-webusb';
-import { connectDevice } from './deviceConnection';
+import { UsbDevice } from './deviceConnection';
+export { UsbDevice } from './deviceConnection';
 
 let refreshCallback = (devices: UsbDevice[]) => {}
-
-export class UsbDevice {
-    private backend: AdbWebUsbBackend;
-    
-    public serial: string;
-    public name: string;
-
-    constructor(backend: AdbWebUsbBackend) {
-        this.backend = backend;
-
-        this.serial = backend.serial;
-        this.name = backend.name;
-    }
-
-    get connected() {
-        return this.backend.connected;
-    }
-
-    connect = async () => {
-        await connectDevice(this.backend, this.disconnect);
-
-        connectedDevices[this.backend.serial] = this;
-        this.backend.onDisconnected(this.disconnect);
-
-        refreshDevices();
-    }
-
-    disconnect = () => {
-        this.backend.dispose();
-
-        delete connectedDevices[this.backend.serial];
-    
-        refreshDevices();
-    }
-}
 
 export async function requestDevice() {
     await AdbWebUsbBackend.requestDevice();
@@ -45,6 +11,15 @@ export async function requestDevice() {
 
 let connectedDevices: {[key: string]: UsbDevice} = {};
 
+function onDeviceConnect(device: UsbDevice) {
+    connectedDevices[device.serial] = device;
+    refreshDevices();
+}
+
+function onDeviceDisconnect(device: UsbDevice) {
+    delete connectedDevices[device.serial];
+    refreshDevices();
+}
 
 async function refreshDevices() {
     console.log("Refreshing device list");
@@ -53,7 +28,10 @@ async function refreshDevices() {
         if (device.serial in connectedDevices) {
             return connectedDevices[device.serial];
         }
-        return new UsbDevice(device);
+        return new UsbDevice(device, {
+            onConnect: onDeviceConnect,
+            onDisconnect: onDeviceDisconnect
+        });
     });
 
     refreshCallback(devices);
