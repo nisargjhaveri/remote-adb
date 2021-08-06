@@ -5,10 +5,10 @@
   "scripts": {
     "build:server": "tsc -p tsconfig.server.json",
     "build:client": "webpack --mode production",
-    "build": "npm-run-all -l --p build:*",
+    "build": "npm-run-all -l -p build:*",
     "serve": "node ./dist/index.js",
     "prestart": "npm run build",
-    "start": "npm run serve",
+    "start": "node ./dist/index.js",
     "watch:server": "tsc -p tsconfig.server.json --watch --preserveWatchOutput",
     "watch:client": "webpack --watch",
     "watch": "npm-run-all -l -p watch:*",

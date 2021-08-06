@@ -55,7 +55,7 @@ const httpsOptions = useHttps ? {
 } : {}
 
 //////////////////
-const port = 3000;
+const port = argv.port;
 const app = express();
 const server = useHttps ? https.createServer(httpsOptions, app) : http.createServer(app);
 const wss = new WebSocket.Server({ server });
