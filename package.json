@@ -5,14 +5,15 @@
   "scripts": {
     "build:server": "tsc -p tsconfig.server.json",
     "build:client": "webpack --mode production",
-    "build": "npm-run-all -l --parallel build:*",
+    "build": "npm-run-all -l --p build:*",
     "serve": "node ./dist/index.js",
     "prestart": "npm run build",
     "start": "npm run serve",
     "watch:server": "tsc -p tsconfig.server.json --watch --preserveWatchOutput",
     "watch:client": "webpack --watch",
+    "watch": "npm-run-all -l -p watch:*",
     "serve-dev": "nodemon -w ./dist ./dist/index.js",
-    "dev": "npm-run-all -l --parallel watch:* serve-dev",
+    "dev": "npm-run-all -l --p watch:* serve-dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -22,6 +23,7 @@
     "@types/react": "^17.0.15",
     "@types/react-dom": "^17.0.9",
     "@types/ws": "^7.4.6",
+    "@types/yargs": "^17.0.2",
     "html-webpack-plugin": "^5.3.2",
     "nodemon": "^2.0.12",
     "npm-run-all": "^4.1.5",
@@ -36,6 +38,7 @@
     "express": "^4.17.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "ws": "^7.5.3"
+    "ws": "^7.5.3",
+    "yargs": "^17.1.0"
   }
 }
