@@ -7,7 +7,7 @@ import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
 
 import { UsbDevice, monitorDevices, requestDevice } from '../usbDevices';
-import * as byteSize from 'byte-size';
+import * as bytes from 'bytes';
 
 import { initializeIcons } from '@fluentui/font-icons-mdl2';
 initializeIcons();
@@ -60,12 +60,16 @@ function CommunicationSpeed(props: {device: UsbDevice}) {
         }
     }, [device.connected]);
 
+    let formatSpeed = useCallback((b) => {
+        return `${bytes.format(b, {decimalPlaces: 1, unitSeparator: ' '})}/s`;
+    }, []);
+
     return device.connected && (
         <Stack horizontal verticalAlign="center" tokens={{childrenGap: 's1'}}>
             <Text>&nbsp;</Text>
-            <Text>Up: {byteSize(speed.up).toString()}/s</Text>
+            <Text>Up: {formatSpeed(speed.up)}</Text>
             <Text>&nbsp;</Text>
-            <Text>Down: {byteSize(speed.down).toString()}/s</Text>
+            <Text>Down: {formatSpeed(speed.down)}</Text>
         </Stack>
     )
 }
