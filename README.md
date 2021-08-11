@@ -3,29 +3,22 @@ remote-adb
 
 Use WebUSB to connect to Android devices and forward the adb connection to a remote server for debugging.
 
-Prerequisites
+Install
 ---
-- Node.js (along with npm) (https://nodejs.org/)
-
-Setup
----
-Clone this repository and run the following commands to set it up.
+This is a [Node.js](https://nodejs.org/) tool available via [npm registry](https://www.npmjs.com/). You can install it by running the following command.
 
 ```
-$ cd remote-adb
-
-$ npm install
-$ npm run build
+$ npm install -g remote-adb
 ```
 
-Run
+This should install `remote-adb` globally to your system path.
+
+Usage
 ---
 ```
-$ npm run serve -- [--help] [--port PORT] [--key server.key --cert server.crt]
+$ remote-adb [--help] [--port PORT] [--key server.key --cert server.crt]
 ```
 
 Pass in file paths containing key and certificate chain for ssh in `--key` and `--cert`. You can omit it if you don't want to run the server as https. Please note that https is required for this to work.
 
-Use
----
-Once the server is running, open `https://hostname:port` on a remote machine, where hostname is where the server is running. Follow the onscreen instructions on that page to share adb connection to selected devices.
+Once the server is running, open `https://<hostname>:<port>` in a compatible browser on a remote machine. Follow the instructions on that page to connect and debug on physical devices remotely.
