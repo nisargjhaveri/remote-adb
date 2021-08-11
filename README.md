@@ -19,6 +19,6 @@ Usage
 $ remote-adb [--help] [--port PORT] [--key server.key --cert server.crt]
 ```
 
-Pass in file paths containing key and certificate chain for ssh in `--key` and `--cert`. You can omit it if you don't want to run the server as https. Please note that https is required for this to work.
+Pass in file paths containing key and certificate chain for https in `--key` and `--cert`. You can omit it if you don't want to run the server as https. Please note that https is required for this to work.
 
 Once the server is running, open `https://<hostname>:<port>` in a compatible browser on a remote machine. Follow the instructions on that page to connect and debug on physical devices remotely.
