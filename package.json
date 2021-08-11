@@ -1,7 +1,7 @@
 {
-  "name": "web-adb-proxy",
+  "name": "remote-adb",
   "version": "1.0.0",
-  "description": "",
+  "description": "Share Android devices for debugging on a remote machine via an easy web interface",
   "scripts": {
     "build:server": "tsc -p tsconfig.server.json",
     "build:client": "webpack --mode production",
@@ -16,30 +16,29 @@
     "dev": "npm-run-all -l -p watch:* serve-dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@fluentui/react": "^8.27.1",
     "@types/bytes": "^3.1.1",
     "@types/express": "^4.17.13",
     "@types/react": "^17.0.15",
     "@types/react-dom": "^17.0.9",
     "@types/ws": "^7.4.6",
     "@types/yargs": "^17.0.2",
+    "@yume-chan/adb-backend-webusb": "0.0.9",
+    "bytes": "^3.1.0",
     "html-webpack-plugin": "^5.3.2",
     "nodemon": "^2.0.12",
     "npm-run-all": "^4.1.5",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "ts-loader": "^9.2.3",
     "typescript": "^4.3.5",
     "webpack": "^5.44.0",
     "webpack-cli": "^4.7.2"
   },
   "dependencies": {
-    "@fluentui/react": "^8.25.0",
-    "@yume-chan/adb-backend-webusb": "0.0.9",
-    "bytes": "^3.1.0",
     "express": "^4.17.1",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
     "ws": "^7.5.3",
     "yargs": "^17.1.0"
   }

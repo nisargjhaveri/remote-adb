@@ -1,4 +1,4 @@
-remote-adb-web
+remote-adb
 ===
 
 Use WebUSB to connect to Android devices and forward the adb connection to a remote server for debugging.
@@ -12,7 +12,7 @@ Setup
 Clone this repository and run the following commands to set it up.
 
 ```
-$ cd remote-adb-web
+$ cd remote-adb
 
 $ npm install
 $ npm run build
