@@ -45,3 +45,7 @@ export function monitorDevices(callback: (devices: UsbDevice[]) => void) {
     refreshDevices();
     new AdbWebUsbBackendWatcher(refreshDevices);
 }
+
+export function isSupported() {
+    return AdbWebUsbBackend.isSupported()
+}
