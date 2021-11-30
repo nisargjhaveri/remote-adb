@@ -40,7 +40,7 @@ export function App() {
                         <Text style={{color: NeutralColors.gray90}}>No devices found</Text>
                     </Stack.Item>
                 )}
-                <Stack tokens={{childrenGap: 'm', padding: 's'}}>
+                <Stack tokens={{childrenGap: 'l2', padding: 's'}}>
                     {devices.map((device) => (<Device device={device} key={device.serial} />))}
                 </Stack>
             </Stack>

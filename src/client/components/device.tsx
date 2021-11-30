@@ -24,7 +24,7 @@ function CommunicationSpeed(props: {device: UsbDevice}) {
             down: Math.floor((device.bytesTransferred.down - speedCounterState.down) * 1000 / timeElapsed),
         });
 
-        console.log(currentTime, timeElapsed, device.bytesTransferred, speedCounterState);
+        // console.log(currentTime, timeElapsed, device.bytesTransferred, speedCounterState);
 
         setSpeedConunterState({
             up: device.bytesTransferred.up,
@@ -100,13 +100,13 @@ export function Device(props: {device: UsbDevice}) {
                     </Stack.Item>
                     {device.connected ? 
                         <DefaultButton text="Disconnect" onClick={device.disconnect} /> :
-                        <PrimaryButton text="Connect" onClick={onConnect} />
+                        <PrimaryButton text="Connect to remote" onClick={onConnect} />
                     }
                 </Stack>
                 <Stack horizontal tokens={{childrenGap: 'l1'}} verticalAlign="center" >
                     <Stack.Item grow={!device.connected}>
                         { 
-                            error ? 
+                            error ?
                                 (<MessageBar
                                     messageBarType={MessageBarType.error}
                                     isMultiline={false}
