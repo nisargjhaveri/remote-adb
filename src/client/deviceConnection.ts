@@ -80,13 +80,13 @@ export class UsbDevice {
         this.bytesTransferred.up += buffer.byteLength;
     }
     
-    private backendWriteOrIgnore(backend: AdbWebUsbBackend, buffer: ArrayBuffer, logTag: string) {
+    private async backendWriteOrIgnore(backend: AdbWebUsbBackend, buffer: ArrayBuffer, logTag: string) {
         // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
         if (!backend.connected) {
             console.warn(logTag, "Device is not connected. Ignoring sent data");
             return;
         }
-        backend.write(buffer);
+        await backend.write(buffer);
 
         this.bytesTransferred.down += buffer.byteLength;
     }
@@ -148,7 +148,7 @@ export class UsbDevice {
                     }
     
                     buffer = await data.slice(0, 24).arrayBuffer();
-                    this.backendWriteOrIgnore(backend, buffer, backend.serial);
+                    await this.backendWriteOrIgnore(backend, buffer, backend.serial);
     
                     // let packetHeader = await parsePacketHeader(buffer, backend);
                     payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
@@ -172,13 +172,18 @@ export class UsbDevice {
                     }
                     else {
                         buffer = await data.arrayBuffer();
-                        this.backendWriteOrIgnore(backend, buffer, backend.serial);
+                        await this.backendWriteOrIgnore(backend, buffer, backend.serial);
                         console.log(backend.serial, `<== payload ${payload_length} bytes`);
     
                         payload_length -= data.size;
     
                         if (payload_length == 0) {
                             state = AWAITING_HEADER;
+
+                            // Sometimes we stop recieving read data after a large transfer.
+                            // Writing something seems to resume the communication.
+                            // Writing a zero length buffer here as a workaround, not sure if this is expected.
+                            await this.backendWriteOrIgnore(backend, new Int8Array(), backend.serial);
                         }
                     }
     
