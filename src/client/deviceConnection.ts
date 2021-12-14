@@ -14,7 +14,7 @@ export type UsbDeviceConnectionCallback = {
 export class UsbDevice {
     private backend: AdbWebUsbBackend;
     private callback: UsbDeviceConnectionCallback;
-    
+
     public serial: string;
     public name: string;
 
@@ -50,12 +50,12 @@ export class UsbDevice {
         let wsUrl = new URL(window.location.href);
         wsUrl.protocol = wsUrl.protocol.replace('http', 'ws');
         const ws = new WebSocket(wsUrl.href);
-    
+
         // Setup forwarding loops
         ws.onmessage = this.writeLoopCallback(this.backend, ws);
-        ws.onclose = () => { 
+        ws.onclose = () => {
             console.log(this.backend.serial, "WebSocket closed. Closing device.");
-            this.disconnect(); 
+            this.disconnect();
         }
         this.readLoop(this.backend, ws).then(() => {
             console.log(this.backend.serial, "Closing WebSocket");
@@ -79,7 +79,7 @@ export class UsbDevice {
 
         this.bytesTransferred.up += buffer.byteLength;
     }
-    
+
     private async backendWriteOrIgnore(backend: AdbWebUsbBackend, buffer: ArrayBuffer, logTag: string) {
         // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
         if (!backend.connected) {
@@ -96,7 +96,7 @@ export class UsbDevice {
             do {
                 // Read header
                 let buffer: ArrayBuffer = await backend.read(24);
-    
+
                 // Detect boundary
                 // Note that it relies on the backend to only return data from one write operation
                 while (buffer.byteLength !== 24) {
@@ -105,17 +105,17 @@ export class UsbDevice {
                     buffer = await backend.read(24);
                 }
                 this.wsSendOrIgnore(ws, buffer, backend.serial);
-    
+
                 // let packetHeader = await parsePacketHeader(buffer, backend);
                 let payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
-    
+
                 console.log(backend.serial, "==> header", payload_length);
-    
+
                 // Read payload as well
                 while (payload_length > 0) {
                     buffer = await backend.read(payload_length);
                     this.wsSendOrIgnore(ws, buffer, backend.serial);
-    
+
                     console.log(backend.serial, `==> payload ${payload_length} bytes`);
                     payload_length -= buffer.byteLength;
                 }
@@ -125,7 +125,7 @@ export class UsbDevice {
         catch (e) {
             console.error(backend.serial, e);
         }
-    
+
         console.log(backend.serial, "Ending read loop");
         return;
     }
@@ -133,36 +133,43 @@ export class UsbDevice {
     private writeLoopCallback(backend: AdbWebUsbBackend, ws: WebSocket): ((e: MessageEvent<any>) => any) {
         const AWAITING_HEADER = "AWAITING_HEADER";
         const AWAITING_PAYLOAD = "AWAITING_PAYLOAD";
+
         let state = AWAITING_HEADER;
+        let pending_data = new Blob();
         let payload_length = 0;
-    
+
         let lastPromise = Promise.resolve();
-    
+
         let handleWriteData = async (data: Blob) => {
-            let buffer: ArrayBuffer;
-            
+            if (pending_data.size > 0) {
+                data = new Blob([pending_data, data]);
+                pending_data = new Blob();
+            }
+
             switch (state) {
                 case AWAITING_HEADER:
                     if (data.size < 24) {
-                        throw new Error("Error: Was Expecting at least 24 bytes");
+                        pending_data = data;
+                        console.log(`Was expecting 24 bytes, but got ${data.size} bytes. Waiting for more data`);
                     }
-    
-                    buffer = await data.slice(0, 24).arrayBuffer();
-                    await this.backendWriteOrIgnore(backend, buffer, backend.serial);
-    
-                    // let packetHeader = await parsePacketHeader(buffer, backend);
-                    payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
-    
-                    console.log(backend.serial, "<== header", payload_length);
-    
-                    if (payload_length > 0) {
-                        state = AWAITING_PAYLOAD;
+                    else {
+                        let buffer = await data.slice(0, 24).arrayBuffer();
+                        await this.backendWriteOrIgnore(backend, buffer, backend.serial);
+
+                        // let packetHeader = await parsePacketHeader(buffer, backend);
+                        payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
+
+                        console.log(backend.serial, "<== header", payload_length);
+
+                        if (payload_length > 0) {
+                            state = AWAITING_PAYLOAD;
+                        }
+
+                        if (data.size > 24) {
+                            await handleWriteData(data.slice(24));
+                        }
                     }
-    
-                    if (data.size > 24) {
-                        await handleWriteData(data.slice(24));
-                    }
-    
+
                     break;
                 case AWAITING_PAYLOAD:
                     if (data.size > payload_length) {
@@ -171,12 +178,12 @@ export class UsbDevice {
                         await handleWriteData(data.slice(boundry));
                     }
                     else {
-                        buffer = await data.arrayBuffer();
+                        let buffer = await data.arrayBuffer();
                         await this.backendWriteOrIgnore(backend, buffer, backend.serial);
                         console.log(backend.serial, `<== payload ${payload_length} bytes`);
-    
+
                         payload_length -= data.size;
-    
+
                         if (payload_length == 0) {
                             state = AWAITING_HEADER;
 
@@ -186,11 +193,11 @@ export class UsbDevice {
                             await this.backendWriteOrIgnore(backend, new Int8Array(), backend.serial);
                         }
                     }
-    
+
                     break;
             }
         }
-    
+
         return (event) => {
             lastPromise = lastPromise.then(async () => { await handleWriteData(event.data); });
         }
