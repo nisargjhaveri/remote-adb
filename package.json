@@ -9,13 +9,13 @@
     "prepare": "npm run build",
     "serve": "node ./dist/index.js server",
     "build": "npm-run-all -l -p build:*",
-    "build:server": "tsc -p tsconfig.server.json",
-    "build:client": "webpack --mode production",
+    "build:node": "tsc -p tsconfig.node.json",
+    "build:web": "webpack --mode production",
     "dev": "npm-run-all -l -p watch:* serve-dev",
     "serve-dev": "nodemon -w ./dist ./dist/index.js server",
     "watch": "npm-run-all -l -p watch:*",
-    "watch:server": "tsc -p tsconfig.server.json --watch --preserveWatchOutput",
-    "watch:client": "webpack --watch",
+    "watch:node": "tsc -p tsconfig.node.json --watch --preserveWatchOutput",
+    "watch:web": "webpack --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
     "extends": "./tsconfig.json",
-    "exclude": ["src/client/"],
+    "exclude": ["src/web/"],
     "compilerOptions": {
         "target": "es6",
     },

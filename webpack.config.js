@@ -4,7 +4,7 @@ const webpack = require('webpack');
 
 module.exports = {
   mode: "development",
-  entry: path.resolve(__dirname, './src/client/index.tsx'),
+  entry: path.resolve(__dirname, './src/web/index.tsx'),
   devtool: false,
   module: {
     rules: [
@@ -20,7 +20,7 @@ module.exports = {
   },
   output: {
     filename: '[name].[contenthash].bundle.js',
-    path: path.resolve(__dirname, 'dist', 'client'),
+    path: path.resolve(__dirname, 'dist', 'web'),
     clean: true
   },
   optimization: {
@@ -37,7 +37,7 @@ module.exports = {
   },
   plugins: [
       new HtmlWebpackPlugin({
-          template: path.resolve(__dirname, "./src/client/templates/index.html")
+          template: path.resolve(__dirname, "./src/web/templates/index.html")
       }),
       new webpack.SourceMapDevToolPlugin({
         filename: '[file].map',

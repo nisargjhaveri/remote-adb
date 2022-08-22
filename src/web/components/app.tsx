@@ -7,7 +7,7 @@ import { PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
 import { Device } from './device';
 
-import { UsbDevice, monitorDevices, requestDevice, isSupported } from '../usbDevices';
+import { UsbDevice, monitorDevices, requestDevice, isSupported } from '../../client/usbDevices';
 
 import { initializeIcons } from '@fluentui/font-icons-mdl2';
 initializeIcons();

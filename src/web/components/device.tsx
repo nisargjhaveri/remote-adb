@@ -7,7 +7,7 @@ import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
 
-import { UsbDevice } from '../usbDevices';
+import { UsbDevice } from '../../client/usbDevices';
 import * as bytes from 'bytes';
 
 function CommunicationSpeed(props: {device: UsbDevice}) {

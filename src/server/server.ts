@@ -23,7 +23,7 @@ export class Server {
         const wss = new WebSocket.Server({ server });
 
         // Serve static files from client
-        app.use(express.static(path.join(__dirname, '../client')));
+        app.use(express.static(path.join(__dirname, '../web')));
 
         // Setup web socket server logic
         let wsStream: any;
