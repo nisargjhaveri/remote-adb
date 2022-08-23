@@ -3,6 +3,7 @@
         "outDir": "./dist/",
         "noImplicitAny": true,
         "module": "commonjs",
+        "esModuleInterop": true,
         "target": "es5",
         "allowJs": false,
         "sourceMap": true,

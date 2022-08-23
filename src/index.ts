@@ -2,7 +2,7 @@
 
 import * as server from './server/command';
 
-import * as yargs from 'yargs';
+import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
 yargs(hideBin(process.argv))

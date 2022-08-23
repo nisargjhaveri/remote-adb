@@ -2,8 +2,8 @@ import * as http from 'http';
 import * as https from 'https';
 import * as net from 'net';
 import * as path from 'path';
-import * as express from 'express';
-import * as WebSocket from 'ws';
+import express from 'express';
+import WebSocket from 'ws';
 
 import { monitorAdbServer, addAdbDevice, removeAdbDevice } from './adbConnection';
 
