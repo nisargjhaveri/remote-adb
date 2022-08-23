@@ -7,23 +7,23 @@ import { PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
 import { Device } from './device';
 
-import { UsbDevice, monitorDevices, requestDevice, isSupported } from '../../client/usbDevices';
+import { RemoteAdbDevice, UsbDeviceManager } from '../../client/UsbDeviceManager';
 
 import { initializeIcons } from '@fluentui/font-icons-mdl2';
 initializeIcons();
 
 export function App() {
-    let [devices, setDevices] = useState<UsbDevice[]>([]);
+    let [devices, setDevices] = useState<RemoteAdbDevice[]>([]);
 
     useEffect(() => {
-        if (!isSupported()) {
+        if (!UsbDeviceManager.isSupported()) {
             return;
         }
 
-        monitorDevices(setDevices);
+        UsbDeviceManager.monitorDevices(setDevices);
     }, []);
 
-    return isSupported() ? (
+    return UsbDeviceManager.isSupported() ? (
         <div style={{maxWidth: 650, margin: "0 auto"}}>
             {/* <Text variant="large">Welcome</Text> */}
             <Stack tokens={{padding: 'l2', childrenGap: 'l2'}}>
@@ -32,7 +32,7 @@ export function App() {
                 </Stack.Item>
                 <Stack horizontal tokens={{childrenGap: 'm', padding: 's'}} horizontalAlign="center" verticalAlign="center">
                     <Text>Device not visible in the list below?</Text>
-                    <PrimaryButton text="Add device" id="request" onClick={requestDevice} iconProps={{iconName: "Add"}} />
+                    <PrimaryButton text="Add device" id="request" onClick={UsbDeviceManager.requestDevice} iconProps={{iconName: "Add"}} />
                 </Stack>
                 <Separator>Connected Devices</Separator>
                 {!devices.length && (

@@ -1,22 +1,17 @@
-import { AdbWebUsbBackend } from '@yume-chan/adb-backend-webusb';
+import { EventEmitter } from "events";
+import { AdbTransport } from "./AdbTransport";
 
-function getPayloadLength(headerBuffer: ArrayBuffer) {
-    // Get the fourth 32 bit integer from the header. This is the payload length
-    let header = new DataView(headerBuffer);
-    return header.getUint32(12 /* byteOffset */, true /* littleEndian */);
-}
 
-export type UsbDeviceConnectionCallback = {
-    onConnect(device: UsbDevice): void,
-    onDisconnect(device: UsbDevice): void,
-}
+export class RemoteAdbDevice extends EventEmitter {
+    private backend: AdbTransport;
 
-export class UsbDevice {
-    private backend: AdbWebUsbBackend;
-    private callback: UsbDeviceConnectionCallback;
+    get serial() {
+        return this.backend.serial;
+    }
 
-    public serial: string;
-    public name: string;
+    get name() {
+        return this.backend.name;
+    }
 
     // Total data transferred in bytes
     private _bytesTransferred = {
@@ -27,12 +22,10 @@ export class UsbDevice {
         return this._bytesTransferred;
     }
 
-    constructor(backend: AdbWebUsbBackend, callback: UsbDeviceConnectionCallback) {
-        this.backend = backend;
-        this.callback = callback;
+    constructor(backend: AdbTransport) {
+        super()
 
-        this.serial = backend.serial;
-        this.name = backend.name;
+        this.backend = backend;
     }
 
     get connected() {
@@ -43,8 +36,8 @@ export class UsbDevice {
         // Connect with USB backend
         await this.backend.connect();
         console.log(this.backend.serial, "connected", this.backend);
-        this.backend.onDisconnected(this.disconnect);
-        this.callback.onConnect(this);
+        this.backend.ondisconnect(this.disconnect);
+        this.emit("connected", this);
 
         // Connect to WebSocket
         let wsUrl = new URL(window.location.href);
@@ -66,7 +59,7 @@ export class UsbDevice {
     disconnect = () => {
         this.backend.dispose();
 
-        this.callback.onDisconnect(this);
+        this.emit("disconnected", this);
     }
 
     private wsSendOrIgnore(ws: WebSocket, buffer: ArrayBuffer, logTag: string) {
@@ -80,7 +73,7 @@ export class UsbDevice {
         this.bytesTransferred.up += buffer.byteLength;
     }
 
-    private async backendWriteOrIgnore(backend: AdbWebUsbBackend, buffer: ArrayBuffer, logTag: string) {
+    private async backendWriteOrIgnore(backend: AdbTransport, buffer: ArrayBuffer, logTag: string) {
         // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
         if (!backend.connected) {
             console.warn(logTag, "Device is not connected. Ignoring sent data");
@@ -91,7 +84,13 @@ export class UsbDevice {
         this.bytesTransferred.down += buffer.byteLength;
     }
 
-    private async readLoop(backend: AdbWebUsbBackend, ws: WebSocket) {
+    private getPayloadLength(headerBuffer: ArrayBuffer) {
+        // Get the fourth 32 bit integer from the header. This is the payload length
+        let header = new DataView(headerBuffer);
+        return header.getUint32(12 /* byteOffset */, true /* littleEndian */);
+    }
+
+    private async readLoop(backend: AdbTransport, ws: WebSocket) {
         try {
             do {
                 // Read header
@@ -107,7 +106,7 @@ export class UsbDevice {
                 this.wsSendOrIgnore(ws, buffer, backend.serial);
 
                 // let packetHeader = await parsePacketHeader(buffer, backend);
-                let payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
+                let payload_length = this.getPayloadLength(buffer); //packetHeader.payloadLength;
 
                 console.log(backend.serial, "==> header", payload_length);
 
@@ -130,7 +129,7 @@ export class UsbDevice {
         return;
     }
 
-    private writeLoopCallback(backend: AdbWebUsbBackend, ws: WebSocket): ((e: MessageEvent<any>) => any) {
+    private writeLoopCallback(backend: AdbTransport, ws: WebSocket): ((e: MessageEvent<any>) => any) {
         const AWAITING_HEADER = "AWAITING_HEADER";
         const AWAITING_PAYLOAD = "AWAITING_PAYLOAD";
 
@@ -157,7 +156,7 @@ export class UsbDevice {
                         await this.backendWriteOrIgnore(backend, buffer, backend.serial);
 
                         // let packetHeader = await parsePacketHeader(buffer, backend);
-                        payload_length = getPayloadLength(buffer); //packetHeader.payloadLength;
+                        payload_length = this.getPayloadLength(buffer); //packetHeader.payloadLength;
 
                         console.log(backend.serial, "<== header", payload_length);
 

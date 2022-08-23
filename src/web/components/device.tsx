@@ -7,11 +7,11 @@ import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
 
-import { UsbDevice } from '../../client/usbDevices';
+import { RemoteAdbDevice } from '../../client/UsbDeviceManager';
 import * as bytes from 'bytes';
 
-function CommunicationSpeed(props: {device: UsbDevice}) {
-    let device: UsbDevice = props.device;
+function CommunicationSpeed(props: {device: RemoteAdbDevice}) {
+    let device: RemoteAdbDevice = props.device;
     let [speedCounterState, setSpeedConunterState] = useState({up: 0, down: 0, time: 0});
     let [speed, setSpeed] = useState({up: 0, down: 0});
 
@@ -71,8 +71,8 @@ function CommunicationSpeed(props: {device: UsbDevice}) {
     )
 }
 
-export function Device(props: {device: UsbDevice}) {
-    let device: UsbDevice = props.device;
+export function Device(props: {device: RemoteAdbDevice}) {
+    let device: RemoteAdbDevice = props.device;
     let [error, setError] = useState(undefined);
 
     let onConnect = useCallback(async () => {
