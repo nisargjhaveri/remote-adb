@@ -55,7 +55,7 @@ export function App() {
                     <Text>
                         Please make sure:
                         <ul>
-                            <li>That you are using one of <Link href="https://caniuse.com/webusb">browsers that support WebUSB API</Link>.
+                            <li>That you are using one of <Link href="https://caniuse.com/webusb">the browsers that support WebUSB API</Link>.
                                 Microsoft Edge and Google Chrome are supported.</li>
                             { !window.isSecureContext && <li>That this page is opened securely with "https".
                                 A <Link href="https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts">secure context</Link> is required for the <Link href="https://developer.mozilla.org/en-US/docs/Web/API/WebUSB_API">WebUSB API</Link> to work. </li> } 
