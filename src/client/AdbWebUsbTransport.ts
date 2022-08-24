@@ -9,6 +9,7 @@ export const WebUsbDeviceFilter: USBDeviceFilter = {
 
 // Adopted from https://github.com/yume-chan/ya-webadb/blob/v0.0.9/packages/adb-backend-webusb/src/backend.ts
 export class AdbWebUsbTransport implements AdbTransport {
+    private _usb: USB;
     private _device: USBDevice;
 
     public get serial(): string { return this._device.serialNumber!; }
@@ -24,10 +25,11 @@ export class AdbWebUsbTransport implements AdbTransport {
     private _inEndpointNumber!: number;
     private _outEndpointNumber!: number;
 
-    public constructor(device: USBDevice) {
+    public constructor(usb: USB, device: USBDevice) {
+        this._usb = usb
         this._device = device;
 
-        window.navigator.usb.addEventListener('disconnect', this.handleDisconnect);
+        this._usb.addEventListener('disconnect', this.handleDisconnect);
     }
 
     private handleDisconnect = (e: USBConnectionEvent) => {
@@ -103,8 +105,14 @@ export class AdbWebUsbTransport implements AdbTransport {
 
     public async dispose() {
         this._connected = false;
-        window.navigator.usb.removeEventListener('disconnect', this.handleDisconnect);
+        this._usb.removeEventListener('disconnect', this.handleDisconnect);
         this.events.removeAllListeners();
-        await this._device.close();
+        try {
+            // Close currently can throw error in node. Ignore.
+            await this._device.close();
+        }
+        catch (e: any) {
+            // console.log(e.message);
+        }
     }
 }

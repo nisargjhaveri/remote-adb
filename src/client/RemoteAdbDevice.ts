@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { AdbTransport } from "./AdbTransport";
 
+import WebSocket from 'isomorphic-ws';
 
 export class RemoteAdbDevice extends EventEmitter {
     private backend: AdbTransport;
@@ -32,19 +33,22 @@ export class RemoteAdbDevice extends EventEmitter {
         return this.backend.connected;
     }
 
-    connect = async () => {
+    connect = async (wsUrl: string) => {
         // Connect with USB backend
         await this.backend.connect();
-        console.log(this.backend.serial, "connected", this.backend);
+        console.log(this.backend.serial, "USB connected");
         this.backend.ondisconnect(this.disconnect);
         this.emit("connected", this);
 
         // Connect to WebSocket
-        let wsUrl = new URL(window.location.href);
-        wsUrl.protocol = wsUrl.protocol.replace('http', 'ws');
-        const ws = new WebSocket(wsUrl.href);
+        const ws = new WebSocket(wsUrl);
+
+        ws.binaryType = "arraybuffer";
 
         // Setup forwarding loops
+        ws.onopen = () => {
+            console.log(this.backend.serial, "WebSocket connected");
+        }
         ws.onmessage = this.writeLoopCallback(this.backend, ws);
         ws.onclose = () => {
             console.log(this.backend.serial, "WebSocket closed. Closing device.");
@@ -56,8 +60,8 @@ export class RemoteAdbDevice extends EventEmitter {
         });
     }
 
-    disconnect = () => {
-        this.backend.dispose();
+    disconnect = async () => {
+        await this.backend.dispose();
 
         this.emit("disconnected", this);
     }
@@ -129,30 +133,39 @@ export class RemoteAdbDevice extends EventEmitter {
         return;
     }
 
-    private writeLoopCallback(backend: AdbTransport, ws: WebSocket): ((e: MessageEvent<any>) => any) {
+    private concatBuffers(b1: ArrayBuffer, b2: ArrayBuffer): ArrayBuffer {
+        let tmp = new Uint8Array(b1.byteLength + b2.byteLength);
+
+        tmp.set(new Uint8Array(b1), 0);
+        tmp.set(new Uint8Array(b2), b1.byteLength);
+
+        return tmp.buffer;
+    }
+
+    private writeLoopCallback(backend: AdbTransport, ws: WebSocket): ((e: any) => void) {
         const AWAITING_HEADER = "AWAITING_HEADER";
         const AWAITING_PAYLOAD = "AWAITING_PAYLOAD";
 
         let state = AWAITING_HEADER;
-        let pending_data = new Blob();
+        let pending_data = new ArrayBuffer(0);
         let payload_length = 0;
 
         let lastPromise = Promise.resolve();
 
-        let handleWriteData = async (data: Blob) => {
-            if (pending_data.size > 0) {
-                data = new Blob([pending_data, data]);
-                pending_data = new Blob();
+        let handleWriteData = async (data: ArrayBuffer) => {
+            if (pending_data.byteLength > 0) {
+                data = this.concatBuffers(pending_data, data);
+                pending_data = new ArrayBuffer(0);
             }
 
             switch (state) {
                 case AWAITING_HEADER:
-                    if (data.size < 24) {
+                    if (data.byteLength < 24) {
                         pending_data = data;
-                        console.log(`Was expecting 24 bytes, but got ${data.size} bytes. Waiting for more data`);
+                        console.log(`Was expecting 24 bytes, but got ${data.byteLength} bytes. Waiting for more data`);
                     }
                     else {
-                        let buffer = await data.slice(0, 24).arrayBuffer();
+                        let buffer = await data.slice(0, 24);
                         await this.backendWriteOrIgnore(backend, buffer, backend.serial);
 
                         // let packetHeader = await parsePacketHeader(buffer, backend);
@@ -164,24 +177,23 @@ export class RemoteAdbDevice extends EventEmitter {
                             state = AWAITING_PAYLOAD;
                         }
 
-                        if (data.size > 24) {
+                        if (data.byteLength > 24) {
                             await handleWriteData(data.slice(24));
                         }
                     }
 
                     break;
                 case AWAITING_PAYLOAD:
-                    if (data.size > payload_length) {
+                    if (data.byteLength > payload_length) {
                         let boundry = payload_length;
                         await handleWriteData(data.slice(0, boundry));
                         await handleWriteData(data.slice(boundry));
                     }
                     else {
-                        let buffer = await data.arrayBuffer();
-                        await this.backendWriteOrIgnore(backend, buffer, backend.serial);
+                        await this.backendWriteOrIgnore(backend, data, backend.serial);
                         console.log(backend.serial, `<== payload ${payload_length} bytes`);
 
-                        payload_length -= data.size;
+                        payload_length -= data.byteLength;
 
                         if (payload_length == 0) {
                             state = AWAITING_HEADER;
@@ -197,7 +209,7 @@ export class RemoteAdbDevice extends EventEmitter {
             }
         }
 
-        return (event) => {
+        return (event: MessageEvent) => {
             lastPromise = lastPromise.then(async () => { await handleWriteData(event.data); });
         }
     }

@@ -78,7 +78,11 @@ export function Device(props: {device: RemoteAdbDevice}) {
     let onConnect = useCallback(async () => {
         try {
             resetError();
-            await device.connect();
+
+            let wsUrl = new URL(window.location.href);
+            wsUrl.protocol = wsUrl.protocol.replace('http', 'ws');
+
+            await device.connect(wsUrl.href);
         }
         catch (e) {
             console.log(e);

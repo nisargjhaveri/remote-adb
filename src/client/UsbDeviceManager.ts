@@ -1,5 +1,7 @@
 import EventEmitter = require('events');
 
+import { WebUSB } from 'usb';
+
 import { AdbWebUsbTransport, WebUsbDeviceFilter } from './AdbWebUsbTransport';
 import { RemoteAdbDevice } from './RemoteAdbDevice';
 export { RemoteAdbDevice } from './RemoteAdbDevice';
@@ -10,7 +12,15 @@ class UsbDeviceManagerSingleton {
     private connectedDevices = new Map<USBDevice, RemoteAdbDevice>();
 
     private get usb() {
-        return navigator?.usb
+        if (typeof navigator !== "undefined") {
+            return navigator?.usb;
+        }
+        if (typeof WebUSB !== "undefined") {
+            return new WebUSB({
+                allowAllDevices: true
+            });
+        }
+        return undefined;
     }
 
     constructor() {
@@ -33,7 +43,7 @@ class UsbDeviceManagerSingleton {
     }
 
     private createRemoteAdbDevice = (d: USBDevice) => {
-        let device = new RemoteAdbDevice(new AdbWebUsbTransport(d));
+        let device = new RemoteAdbDevice(new AdbWebUsbTransport(this.usb, d));
         device.on("connected", this.refreshDevices);
         device.on("disconnected", this.refreshDevices);
 
@@ -41,21 +51,40 @@ class UsbDeviceManagerSingleton {
     }
 
     private refreshDevices = async () => {
+        if (!this.events.listenerCount("devices")) {
+            // If not listener is registered, don't do anything.
+            return;
+        }
+
         console.log("Refreshing device list");
 
-        const currentDevices = new Map<USBDevice, RemoteAdbDevice>();
-
-        const devices = (await this.usb.getDevices()).map((d) => {
-            let device = this.connectedDevices.get(d) ?? this.createRemoteAdbDevice(d);
-
-            currentDevices.set(d, device);
-
-            return device;
-        });
-
-        this.connectedDevices = currentDevices;
+        const devices = await this.getDevices();
 
         this.events.emit("devices", devices);
+
+        return devices
+    }
+
+    getDevices = async () => {
+        const currentDevices = new Map<USBDevice, RemoteAdbDevice>();
+
+        const devices = (await this.usb.getDevices())
+            .filter(d => {
+                return d.configuration?.interfaces.some(iface => {
+                    return iface.alternate.interfaceClass === WebUsbDeviceFilter.classCode
+                        && iface.alternate.interfaceSubclass === WebUsbDeviceFilter.subclassCode
+                        && iface.alternate.interfaceProtocol === WebUsbDeviceFilter.protocolCode
+                });
+            })
+            .map((d) => {
+                let device = this.connectedDevices.get(d) ?? this.createRemoteAdbDevice(d);
+
+                currentDevices.set(d, device);
+
+                return device;
+            });
+
+        this.connectedDevices = currentDevices;
 
         return devices;
     }

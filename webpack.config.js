@@ -17,6 +17,9 @@ module.exports = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
+    alias: {
+      'usb': false
+    }
   },
   output: {
     filename: '[name].[contenthash].bundle.js',

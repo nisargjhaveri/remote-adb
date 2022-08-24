@@ -41,6 +41,8 @@
   },
   "dependencies": {
     "express": "^4.17.1",
+    "isomorphic-ws": "^5.0.0",
+    "usb": "^2.5.0",
     "ws": "^7.5.3",
     "yargs": "^17.1.0"
   }
