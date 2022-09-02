@@ -5,6 +5,7 @@ import WebSocket from 'isomorphic-ws';
 
 export class RemoteAdbDevice extends EventEmitter {
     private backend: AdbTransport;
+    private ws: WebSocket;
 
     get serial() {
         return this.backend.serial;
@@ -30,7 +31,7 @@ export class RemoteAdbDevice extends EventEmitter {
     }
 
     get connected() {
-        return this.backend.connected;
+        return this.backend.connected && this.ws?.readyState == WebSocket.OPEN;
     }
 
     connect = async (wsUrl: string) => {
@@ -38,31 +39,49 @@ export class RemoteAdbDevice extends EventEmitter {
         await this.backend.connect();
         console.log(this.backend.serial, "USB connected");
         this.backend.ondisconnect(this.disconnect);
-        this.emit("connected", this);
 
         // Connect to WebSocket
-        const ws = new WebSocket(wsUrl);
+        this.ws = await new Promise<WebSocket>((resolve, reject) => {
+            const ws = new WebSocket(wsUrl);
 
-        ws.binaryType = "arraybuffer";
+            ws.binaryType = "arraybuffer";
 
-        // Setup forwarding loops
-        ws.onopen = () => {
-            console.log(this.backend.serial, "WebSocket connected");
-        }
-        ws.onmessage = this.writeLoopCallback(this.backend, ws);
-        ws.onclose = () => {
+            let resolved = false;
+            ws.onopen = () => {
+                resolved = true;
+                resolve(ws)
+            }
+            ws.onclose = () => {
+                if (!resolved) { reject(new Error("Error connecting to WebSocket")); }
+            }
+        }).catch(async (e) => {
+            await this.disconnectUsb();
+
+            throw e;
+        });
+
+        this.ws.onmessage = this.writeLoopCallback(this.backend, this.ws);
+        this.ws.onclose = () => {
             console.log(this.backend.serial, "WebSocket closed. Closing device.");
             this.disconnect();
         }
-        this.readLoop(this.backend, ws).then(() => {
+
+        console.log(this.backend.serial, "WebSocket connected");
+        this.emit("connected", this);
+
+        this.readLoop(this.backend, this.ws).then(() => {
             console.log(this.backend.serial, "Closing WebSocket");
-            ws.close();
+            this.ws.close();
         });
     }
 
-    disconnect = async () => {
+    private disconnectUsb = async () => {
         await this.backend.dispose();
+        console.log(this.backend.serial, "USB closed");
+    }
 
+    disconnect = async () => {
+        this.disconnectUsb()
         this.emit("disconnected", this);
     }
 

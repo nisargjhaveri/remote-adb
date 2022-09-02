@@ -74,8 +74,12 @@ function CommunicationSpeed(props: {device: RemoteAdbDevice}) {
 export function Device(props: {device: RemoteAdbDevice}) {
     let device: RemoteAdbDevice = props.device;
     let [error, setError] = useState(undefined);
+    let [isConnecting, setConnecting] = useState(false);
 
     let onConnect = useCallback(async () => {
+        let connecting = true;
+        setTimeout(() => setConnecting(connecting), 100); // delay to reduce flicker
+
         try {
             resetError();
 
@@ -88,7 +92,9 @@ export function Device(props: {device: RemoteAdbDevice}) {
             console.log(e);
             setError(e.message);
         }
-    }, [device, setError]);
+        connecting = false;
+        setConnecting(false);
+    }, [device, setError, setConnecting]);
 
     let resetError = useCallback(() => {
         setError(undefined);
@@ -102,8 +108,12 @@ export function Device(props: {device: RemoteAdbDevice}) {
                     <Stack.Item grow>
                         <Label>{device.name} ({device.serial})</Label>
                     </Stack.Item>
-                    {device.connected ? 
+                    {
+                    device.connected ? 
                         <DefaultButton text="Disconnect" onClick={device.disconnect} /> :
+                    isConnecting ?
+                        <DefaultButton text="Connecting..." disabled /> :
+                    // Otherwise
                         <PrimaryButton text="Connect to remote" onClick={onConnect} />
                     }
                 </Stack>
@@ -126,10 +136,12 @@ export function Device(props: {device: RemoteAdbDevice}) {
                                 >
                                     Connected
                                 </MessageBar>) :
+                            isConnecting ?
+                                (<MessageBar isMultiline={false}>
+                                    Connecting to remote...
+                                </MessageBar>) :
                             // Otherwise
-                                (<MessageBar
-                                    isMultiline={false}
-                                >
+                                (<MessageBar isMultiline={false}>
                                     Ready to connect
                                 </MessageBar>)
                         }
