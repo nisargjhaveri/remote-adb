@@ -7,12 +7,12 @@ async function adbMonitorDisconnected() {
     if (!adbConnection) { return; }
 
     adbConnection = undefined;
-    console.log("adb disconnected");
+    console.log("adb server disconnected");
 }
 
 async function adbMonitorConnected(socket: net.Socket) {
     adbConnection = socket;
-    console.log("adb connected");
+    console.log("adb server connected");
 
     let gotSuccessResponse = false;
     let success = false;
@@ -61,9 +61,8 @@ async function addAllAdbDevices() {
 }
 
 export async function monitorAdbServer() {
+    console.log("Monitoring adb server");
     do {
-        console.log("Trying to connect to adb");
-
         let timer = new Promise((resolve, reject) => {
             setTimeout(resolve, 1000);
         });
@@ -78,7 +77,7 @@ export async function monitorAdbServer() {
             socket.on("error", (e) => {
                 // Do othing
             });
-    
+
             socket.on("close", (hadError) => {
                 adbMonitorDisconnected();
                 resolve();
