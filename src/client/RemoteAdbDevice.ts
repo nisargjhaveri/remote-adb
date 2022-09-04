@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { AdbTransport } from "./AdbTransport";
+import { ServerConnection, WebSocket } from "./ServerConnection";
 
-import WebSocket from 'isomorphic-ws';
 
 export class RemoteAdbDevice extends EventEmitter {
     private backend: AdbTransport;
@@ -34,15 +34,15 @@ export class RemoteAdbDevice extends EventEmitter {
         return this.backend.connected && this.ws?.readyState == WebSocket.OPEN;
     }
 
-    connect = async (wsUrl: string) => {
+    connect = async (serverConnection: ServerConnection) => {
         // Connect with USB backend
         await this.backend.connect();
         console.log(this.backend.serial, "USB connected");
         this.backend.ondisconnect(this.disconnect);
 
         // Connect to WebSocket
-        this.ws = await new Promise<WebSocket>((resolve, reject) => {
-            const ws = new WebSocket(wsUrl);
+        this.ws = await new Promise<WebSocket>(async (resolve, reject) => {
+            const ws = await serverConnection.createWebSocket("");
 
             ws.binaryType = "arraybuffer";
 
@@ -51,6 +51,7 @@ export class RemoteAdbDevice extends EventEmitter {
                 resolved = true;
                 resolve(ws)
             }
+            ws.onerror = () => {}   // This is required in node to not crash on error
             ws.onclose = () => {
                 if (!resolved) { reject(new Error("Error connecting to WebSocket")); }
             }
@@ -81,7 +82,7 @@ export class RemoteAdbDevice extends EventEmitter {
     }
 
     disconnect = async () => {
-        this.disconnectUsb()
+        await this.disconnectUsb();
         this.emit("disconnected", this);
     }
 

@@ -18,7 +18,8 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
-      'usb': false
+      'usb': false,
+      'node-fetch': false,
     }
   },
   output: {

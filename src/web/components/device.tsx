@@ -8,6 +8,8 @@ import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
 
 import { RemoteAdbDevice } from '../../client/UsbDeviceManager';
+import { ServerConnection } from '../../client/ServerConnection';
+
 import * as bytes from 'bytes';
 
 function CommunicationSpeed(props: {device: RemoteAdbDevice}) {
@@ -71,12 +73,13 @@ function CommunicationSpeed(props: {device: RemoteAdbDevice}) {
     )
 }
 
-export function Device(props: {device: RemoteAdbDevice}) {
-    let device: RemoteAdbDevice = props.device;
-    let [error, setError] = useState(undefined);
-    let [isConnecting, setConnecting] = useState(false);
+export function Device(props: {device: RemoteAdbDevice, serverConnection: ServerConnection}) {
+    const [error, setError] = useState(undefined);
+    const [isConnecting, setConnecting] = useState(false);
 
-    let onConnect = useCallback(async () => {
+    const { device, serverConnection } = props;
+
+    const onConnect = useCallback(async () => {
         let connecting = true;
         setTimeout(() => setConnecting(connecting), 100); // delay to reduce flicker
 
@@ -86,7 +89,7 @@ export function Device(props: {device: RemoteAdbDevice}) {
             let wsUrl = new URL(window.location.href);
             wsUrl.protocol = wsUrl.protocol.replace('http', 'ws');
 
-            await device.connect(wsUrl.href);
+            await device.connect(serverConnection);
         }
         catch (e) {
             console.log(e);
@@ -96,7 +99,7 @@ export function Device(props: {device: RemoteAdbDevice}) {
         setConnecting(false);
     }, [device, setError, setConnecting]);
 
-    let resetError = useCallback(() => {
+    const resetError = useCallback(() => {
         setError(undefined);
     }, [setError]);
 

@@ -1,4 +1,5 @@
 import { Argv, CommandModule } from 'yargs';
+import { ServerConnection } from './ServerConnection';
 import { RemoteAdbDevice, UsbDeviceManager } from './UsbDeviceManager';
 
 export const commandDevices = {
@@ -30,17 +31,24 @@ export const commandConnect = {
     builder: (yargs: Argv) => {
         return yargs
             .usage("$0 connect [-s SERIAL] <server>")
-            .option('serial', {
-                alias: 's',
+            .option("serial", {
+                alias: "s",
                 describe: "use device with given serial",
                 nargs: 1,
-                string: true
+                string: true,
             })
             .group(["s"], "Device Selection:")
-            .positional("server", {
-                describe: "URL of the server (e.g. ws://192.168.1.10:3000)",
+            .option("password", {
+                alias: "p",
+                describe: "password to use if required by the server",
+                nargs: 1,
                 string: true,
-                demandOption: "true"
+            })
+            .group(["p"], "Server options:")
+            .positional("server", {
+                describe: "URL of the server (e.g. http://192.168.1.10:3000)",
+                string: true,
+                demandOption: "true",
             })
     },
     handler: (args: {server?: string, serial?: string}) => {
@@ -48,7 +56,7 @@ export const commandConnect = {
     }
 } as CommandModule;
 
-async function connect(args: {server?: string, serial?: string}) {
+async function connect(args: {server?: string, serial?: string, password?: string}) {
     if (!UsbDeviceManager.isSupported()) {
         console.error("USB devices are not supported");
         return;
@@ -70,7 +78,7 @@ async function connect(args: {server?: string, serial?: string}) {
         device = filtered[0];
     }
     else if (devices.length > 1) {
-        console.error("More than one devices connected. Please specify a device with --serial");
+        console.error("More than one devices connected. Please specify a device with --serial.");
         process.exit(1);
     }
     else if (!devices.length) {
@@ -83,12 +91,37 @@ async function connect(args: {server?: string, serial?: string}) {
 
     console.log(`Connecting device "${device.name} (${device.serial})"`)
 
+    const serverConnection = new ServerConnection(args.server);
+
+    const status = await serverConnection.getServerStatus();
+
+    if (status._error) {
+        console.error(`Cannot get server status: ${status._error}`);
+        process.exit(3);
+    }
+    else if (status.loginSupported && status.loginRequired) {
+        if (!args.password) {
+            console.error("Server requires authentication. Please provide a password with --password.");
+            process.exit(4);
+        }
+
+        console.log("Server requires authentication. Trying to login.")
+        try {
+            await serverConnection.login(args.password);
+        }
+        catch (e) {
+            console.error(`Authentication failed: ${e.message}`);
+            process.exit(5);
+        }
+        console.log("Authentication successful");
+    }
+
     device.on("disconnected", () => {
         process.exit(0);
     })
 
     try {
-        await device.connect(args.server);
+        await device.connect(serverConnection);
     }
     catch (e: any) {
         console.error(`Unable to connect device: ${e.message}`);
