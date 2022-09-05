@@ -1,9 +1,10 @@
+import EventEmitter from "events";
+import WebSocket from 'isomorphic-ws';
+
+// Imports only available when running in node
 import nodeFetch from "node-fetch";
 import makeFetchCookie from 'fetch-cookie'
 import type { CookieJar } from "tough-cookie";
-
-import WebSocket from 'isomorphic-ws';
-import EventEmitter from "events";
 
 export { WebSocket };
 
@@ -27,7 +28,7 @@ export class ServerConnection {
     private lastServerStatusPromise = Promise.resolve({});
 
     private cookieJar: CookieJar = undefined;
-    private _fetch: any;
+    private _fetch: any;    // There are some differences in node-fetch and fetch.
 
     constructor(address: string) {
         this.serverAddress = address;

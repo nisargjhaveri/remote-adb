@@ -20,6 +20,7 @@ module.exports = {
     alias: {
       'usb': false,
       'node-fetch': false,
+      'fetch-cookie': false,
     }
   },
   output: {
