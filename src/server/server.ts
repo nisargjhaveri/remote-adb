@@ -114,6 +114,7 @@ export class Server {
 
         // Start the server
         server.listen(this.port, () => {
+            this.port = (server.address() as net.AddressInfo).port;
             console.log(`Started listening on ${useHttps ? 'https' : 'http'}://localhost:${this.port}`);
         });
 
