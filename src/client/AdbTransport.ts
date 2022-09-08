@@ -1,4 +1,6 @@
 export interface AdbTransport {
+    readonly type: "USB"|"TCP";
+
     readonly serial: string;
 
     readonly name: string | undefined;

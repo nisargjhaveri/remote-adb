@@ -18,7 +18,7 @@ export class RemoteAdbDevice extends EventEmitter {
     // Total data transferred in bytes
     private _bytesTransferred = {
         up: 0,      // Sent to WebSocket
-        down: 0     // Sent to USB
+        down: 0     // Sent to the device
     }
     get bytesTransferred() {
         return this._bytesTransferred;
@@ -35,9 +35,9 @@ export class RemoteAdbDevice extends EventEmitter {
     }
 
     connect = async (serverConnection: ServerConnection) => {
-        // Connect with USB backend
+        // Connect with the backend
         await this.backend.connect();
-        console.log(this.backend.serial, "USB connected");
+        console.log(this.backend.serial, `${this.backend.type} connected`);
         this.backend.ondisconnect(this.disconnect);
 
         // Connect to WebSocket
@@ -56,7 +56,7 @@ export class RemoteAdbDevice extends EventEmitter {
                 if (!resolved) { reject(new Error("Error connecting to WebSocket")); }
             }
         }).catch(async (e) => {
-            await this.disconnectUsb();
+            await this.disconnectBackend();
 
             throw e;
         });
@@ -76,13 +76,13 @@ export class RemoteAdbDevice extends EventEmitter {
         });
     }
 
-    private disconnectUsb = async () => {
+    private disconnectBackend = async () => {
         await this.backend.dispose();
-        console.log(this.backend.serial, "USB closed");
+        console.log(this.backend.serial, `${this.backend.type} closed`);
     }
 
     disconnect = async () => {
-        await this.disconnectUsb();
+        await this.disconnectBackend();
         this.emit("disconnected", this);
     }
 

@@ -12,6 +12,8 @@ export class AdbWebUsbTransport implements AdbTransport {
     private _usb: USB;
     private _device: USBDevice;
 
+    readonly type = "USB";
+
     public get serial(): string { return this._device.serialNumber!; }
 
     public get name(): string { return this._device.productName!; }

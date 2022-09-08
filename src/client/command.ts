@@ -1,4 +1,5 @@
 import { Argv, CommandModule } from 'yargs';
+import { AdbTcpTransport } from './AdbTcpTransport';
 import { ServerConnection } from './ServerConnection';
 import { RemoteAdbDevice, UsbDeviceManager } from './UsbDeviceManager';
 
@@ -30,10 +31,10 @@ export const commandConnect = {
     describe: "Connect locally connected device to server",
     builder: (yargs: Argv) => {
         return yargs
-            .usage("$0 connect [-s SERIAL] <server>")
+            .usage("$0 connect [-s SERIAL|HOST:PORT] <server>")
             .option("serial", {
                 alias: "s",
-                describe: "use device with given serial",
+                describe: "use device with given serial or host:port",
                 nargs: 1,
                 string: true,
             })
@@ -50,6 +51,8 @@ export const commandConnect = {
                 string: true,
                 demandOption: "true",
             })
+            .example("$0 connect http://remote-host:3000 -s USBSERIAL", "Connect device USBSERIAL via usb")
+            .example("$0 connect http://remote-host:3000 -s 127.0.0.1:5557", "Connect device on 127.0.0.1:5555 via tcp")
     },
     handler: (args: {server?: string, serial?: string}) => {
         connect(args);
@@ -57,39 +60,20 @@ export const commandConnect = {
 } as CommandModule;
 
 async function connect(args: {server?: string, serial?: string, password?: string}) {
-    if (!UsbDeviceManager.isSupported()) {
-        console.error("USB devices are not supported");
-        return;
-    }
-
-    let devices = await UsbDeviceManager.getDevices();
-
     let device: RemoteAdbDevice;
-    if (args.serial) {
-        let filtered = devices.filter((d) => {
-            return d.serial == args.serial
-        });
 
-        if (!filtered.length) {
-            console.error(`Could not find connected device with serial ${args.serial}`);
-            process.exit(1);
-        }
+    // First try to see if this is a tcp device
+    device = await getTcpDevice(args.serial);
 
-        device = filtered[0];
-    }
-    else if (devices.length > 1) {
-        console.error("More than one devices connected. Please specify a device with --serial.");
+    // Find usb device with serial or exit
+    device = device || await ensureUsbDevice(args.serial);
+
+    // We should not reach here, just in case.
+    if (!device) {
         process.exit(1);
     }
-    else if (!devices.length) {
-        console.error("No USB devices connected");
-        process.exit(1);
-    }
-    else {
-        device = devices[0];
-    }
 
-    console.log(`Connecting device "${device.name} (${device.serial})"`)
+    console.log(`Connecting device "${device.name} (${device.serial})"`);
 
     const serverConnection = new ServerConnection(args.server);
 
@@ -133,4 +117,57 @@ async function connect(args: {server?: string, serial?: string, password?: strin
         await device.disconnect();
         process.exit(0);
     })
+}
+
+async function ensureUsbDevice(serial: string): Promise<RemoteAdbDevice> {
+    if (!UsbDeviceManager.isSupported()) {
+        console.error("USB devices are not supported");
+        process.exit(1);
+    }
+
+    let devices = await UsbDeviceManager.getDevices();
+
+    let device: RemoteAdbDevice;
+    if (serial) {
+        let filtered = devices.filter((d) => {
+            return d.serial == serial
+        });
+
+        if (!filtered.length) {
+            console.error(`Could not find connected device with serial "${serial}"`);
+            process.exit(1);
+        }
+
+        device = filtered[0];
+    }
+    else if (devices.length > 1) {
+        console.error("More than one devices connected. Please specify a device with --serial.");
+        process.exit(1);
+    }
+    else if (!devices.length) {
+        console.error("No USB devices connected");
+        process.exit(1);
+    }
+    else {
+        device = devices[0];
+    }
+
+    return device;
+}
+
+async function getTcpDevice(serial: string): Promise<RemoteAdbDevice|undefined> {
+    try {
+        const url = new URL(`tcp://${serial}`);
+
+        if (!url.hostname || !url.port || Number(url.port) == NaN
+            || url.pathname || url.search || url.hash || url.username || url.password)
+        {
+            return;
+        }
+
+        return new RemoteAdbDevice(new AdbTcpTransport(url.hostname, Number(url.port)));
+    }
+    catch {
+        return;
+    }
 }
