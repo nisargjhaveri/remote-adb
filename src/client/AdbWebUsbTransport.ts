@@ -22,6 +22,12 @@ export class AdbWebUsbTransport implements AdbTransport {
     private _connected = false;
     public get connected() { return this._connected; }
 
+    private _bytesTransferred = {
+        up: 0,
+        down: 0,
+    }
+    get bytesTransferred() { return this._bytesTransferred; }
+
     private readonly events = new EventEmitter();
     public readonly ondisconnect = (listener: (e: Event) => void) => this.events.addListener('disconnect', listener);
 
@@ -114,7 +120,7 @@ export class AdbWebUsbTransport implements AdbTransport {
         }
         ws.send(buffer);
 
-        // this.bytesTransferred.up += buffer.byteLength;
+        this._bytesTransferred.up += buffer.byteLength;
     }
 
     private async backendWriteOrIgnore(backend: this, buffer: ArrayBuffer, logTag: string) {
@@ -125,7 +131,7 @@ export class AdbWebUsbTransport implements AdbTransport {
         }
         await backend.write(buffer);
 
-        // this.bytesTransferred.down += buffer.byteLength;
+        this._bytesTransferred.down += buffer.byteLength;
     }
 
     private async readLoop(backend: this, ws: WebSocket) {

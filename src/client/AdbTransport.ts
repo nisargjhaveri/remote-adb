@@ -10,6 +10,12 @@ export interface AdbTransport {
 
     readonly connected: boolean;
 
+    // Total data transferred in bytes
+    readonly bytesTransferred: {
+        up: number,     // Sent to the WebSocket
+        down: number,   // Sent to the device
+    };
+
     ondisconnect(listener: (e: Event) => void): void;
 
     connect?(): Promise<void>;

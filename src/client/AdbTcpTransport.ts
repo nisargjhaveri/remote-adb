@@ -33,8 +33,25 @@ class AdbCommunicationLogger extends Transform {
         this.dataEventHandler = AdbTransportProtocolHandler.createDataEventHandler(async () => {}, loggerConfig);
     }
 
-    _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback): void {
+    _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback): void {
         this.dataEventHandler(chunk.buffer);
+
+        this.push(chunk);
+        callback();
+    }
+}
+
+class BytesCounter extends Transform {
+    private add;
+
+    constructor(add: (bytes: number) => void) {
+        super();
+
+        this.add = add;
+    }
+
+    _transform(chunk: Buffer, encoding: BufferEncoding, callback: TransformCallback): void {
+        this.add(chunk.byteLength);
 
         this.push(chunk);
         callback();
@@ -55,6 +72,12 @@ export class AdbTcpTransport implements AdbTransport {
 
     private _connected = false;
     public get connected() { return this._connected; }
+
+    private _bytesTransferred = {
+        up: 0,
+        down: 0,
+    }
+    get bytesTransferred() { return this._bytesTransferred; }
 
     private readonly events = new EventEmitter();
     public readonly ondisconnect = (listener: (e: Event) => void) => this.events.addListener('disconnect', listener);
@@ -104,8 +127,10 @@ export class AdbTcpTransport implements AdbTransport {
         wsStream
             .pipe(new ConvertToBuffer())
             .pipe(new AdbCommunicationLogger({ tag: this.serial, direction: "<=="}))
+            .pipe(new BytesCounter((bytes) => { this._bytesTransferred.down += bytes; }))
             .pipe(this.socket)
             .pipe(new AdbCommunicationLogger({ tag: this.serial, direction: "==>"}))
+            .pipe(new BytesCounter((bytes) => { this._bytesTransferred.up += bytes; }))
             .pipe(wsStream, {end: false});
     }
 

@@ -15,13 +15,8 @@ export class RemoteAdbDevice extends EventEmitter {
         return this.backend.name;
     }
 
-    // Total data transferred in bytes
-    private _bytesTransferred = {
-        up: 0,      // Sent to WebSocket
-        down: 0     // Sent to the device
-    }
     get bytesTransferred() {
-        return this._bytesTransferred;
+        return this.backend.bytesTransferred;
     }
 
     constructor(backend: AdbTransport) {
