@@ -132,8 +132,7 @@ export class Server {
 
         let port: Number;
         let server = net.createServer((socket: net.Socket) => {
-            socket.pipe(wsStream, {end: false});
-            wsStream.pipe(socket);
+            socket.pipe(wsStream, {end: false}).pipe(socket);
 
             socket.on("close", (hadError) => {
                 socket.unpipe(wsStream);

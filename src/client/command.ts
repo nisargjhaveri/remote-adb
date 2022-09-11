@@ -73,10 +73,11 @@ async function connect(args: {server?: string, serial?: string, password?: strin
         process.exit(1);
     }
 
-    console.log(`Connecting device "${device.name} (${device.serial})"`);
+    console.log(`Preparing to connect device "${device.name} (${device.serial})"`);
 
     const serverConnection = new ServerConnection(args.server);
 
+    console.log("Connecting to server for status");
     const status = await serverConnection.getServerStatus();
 
     if (status._error) {
@@ -100,6 +101,8 @@ async function connect(args: {server?: string, serial?: string, password?: strin
         console.log("Authentication successful");
     }
 
+    console.log(`Connecting device "${device.name} (${device.serial})"`);
+
     device.on("disconnected", () => {
         process.exit(0);
     })
@@ -113,7 +116,7 @@ async function connect(args: {server?: string, serial?: string, password?: strin
     }
 
     process.on("SIGINT", async () => {
-        console.log("Disconnecting device")
+        console.log("Disconnecting device");
         await device.disconnect();
         process.exit(0);
     })
