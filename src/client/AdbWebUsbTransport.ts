@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { AdbTransport } from './AdbTransport';
+import { AdbTransport, WebSocket } from './AdbTransport';
+import AdbTransportProtocolHandler from './AdbTransportProtocolHandler';
 
 export const WebUsbDeviceFilter: USBDeviceFilter = {
     classCode: 0xFF,
@@ -34,10 +35,10 @@ export class AdbWebUsbTransport implements AdbTransport {
         this._usb.addEventListener('disconnect', this.handleDisconnect);
     }
 
-    private handleDisconnect = (e: USBConnectionEvent) => {
-        if (e.device === this._device) {
+    private handleDisconnect = (e?: USBConnectionEvent) => {
+        if (typeof e === "undefined" || e.device === this._device) {
             this._connected = false;
-            this.events.emit('disconect');
+            this.events.emit('disconnect');
         }
     };
 
@@ -51,7 +52,7 @@ export class AdbWebUsbTransport implements AdbTransport {
                 for (const alternate of interface_.alternates) {
                     if (alternate.interfaceSubclass === WebUsbDeviceFilter.subclassCode &&
                         alternate.interfaceClass === WebUsbDeviceFilter.classCode &&
-                        alternate.interfaceSubclass === WebUsbDeviceFilter.subclassCode) {
+                        alternate.interfaceProtocol === WebUsbDeviceFilter.protocolCode) {
                         if (this._device.configuration?.configurationValue !== configuration.configurationValue) {
                             await this._device.selectConfiguration(configuration.configurationValue);
                         }
@@ -90,11 +91,11 @@ export class AdbWebUsbTransport implements AdbTransport {
         throw new Error('Unknown error while connecting to WebUsb device.');
     }
 
-    public async write(buffer: ArrayBuffer): Promise<void> {
+    private async write(buffer: ArrayBuffer): Promise<void> {
         await this._device.transferOut(this._outEndpointNumber, buffer);
     }
 
-    public async read(length: number): Promise<ArrayBuffer> {
+    private async read(length: number): Promise<ArrayBuffer> {
         const result = await this._device.transferIn(this._inEndpointNumber, length);
 
         if (result.status === 'stall') {
@@ -103,6 +104,70 @@ export class AdbWebUsbTransport implements AdbTransport {
 
         const { buffer } = result.data!;
         return buffer;
+    }
+
+    private wsSendOrIgnore(ws: WebSocket, buffer: ArrayBuffer, logTag: string) {
+        // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
+        if (ws.readyState !== ws.OPEN) {
+            console.warn(logTag, "WebSocket is not open. Ignoring sent data");
+            return;
+        }
+        ws.send(buffer);
+
+        // this.bytesTransferred.up += buffer.byteLength;
+    }
+
+    private async backendWriteOrIgnore(backend: this, buffer: ArrayBuffer, logTag: string) {
+        // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
+        if (!backend.connected) {
+            console.warn(logTag, "Device is not connected. Ignoring sent data");
+            return;
+        }
+        await backend.write(buffer);
+
+        // this.bytesTransferred.down += buffer.byteLength;
+    }
+
+    private async readLoop(backend: this, ws: WebSocket) {
+        return AdbTransportProtocolHandler.startPullPushLoop(
+            () => { // isConnected
+                return backend.connected && (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN);
+            },
+            async (length: number) => { // pull
+                return backend.read(length);
+            },
+            async (buffer: ArrayBuffer) => { // push
+                return this.wsSendOrIgnore(ws, buffer, backend.serial);
+            },
+            {   // loggerConfig
+                tag: backend.serial,
+                direction: "==>",
+            }
+        )
+    }
+
+    private writeLoopCallback(backend: this): ((e: any) => void) {
+        const dataEventHandler = AdbTransportProtocolHandler.createDataEventHandler(
+            async (buffer: ArrayBuffer) => {   // push
+                return this.backendWriteOrIgnore(backend, buffer, backend.serial)
+            },
+            {   // loggerConfig
+                tag: backend.serial,
+                direction: "<==",
+            }
+        );
+
+        return (event: MessageEvent) => {
+            dataEventHandler(event.data);
+        }
+    }
+
+    public async pipe(ws: WebSocket) {
+        ws.onmessage = this.writeLoopCallback(this);
+
+        this.readLoop(this, ws).then(() => {
+            this.handleDisconnect();
+        });
     }
 
     public async dispose() {

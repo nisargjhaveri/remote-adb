@@ -1,3 +1,6 @@
+import type { WebSocket } from "./ServerConnection";
+export type { WebSocket } from "./ServerConnection";
+
 export interface AdbTransport {
     readonly type: "USB"|"TCP";
 
@@ -11,9 +14,7 @@ export interface AdbTransport {
 
     connect?(): Promise<void>;
 
-    write(buffer: ArrayBuffer): Promise<void>;
-
-    read(length: number): Promise<ArrayBuffer>;
+    pipe(ws: WebSocket): Promise<void>;
 
     dispose(): Promise<void>;
 }

@@ -1,8 +1,46 @@
 import { EventEmitter } from 'events';
 import { Socket } from 'net';
-import { AdbTransport } from './AdbTransport';
+import { Transform, TransformCallback, TransformOptions } from 'stream';
+import { createWebSocketStream } from 'ws';
+import { AdbTransport, WebSocket } from './AdbTransport';
+import AdbTransportProtocolHandler, { LoggerConfig } from './AdbTransportProtocolHandler';
 
 // Works only in node, not in browser
+
+// Takes in ArrayBuffer and converts it to Buffer for the remaining pipeline to consume
+class ConvertToBuffer extends Transform {
+    constructor(opts?: TransformOptions) {
+        super({
+            ...opts,
+            writableObjectMode: true
+        })
+    }
+
+    _transform(chunk: ArrayBuffer, encoding: BufferEncoding, callback: TransformCallback): void {
+        this.push(Buffer.from(chunk));
+        callback();
+    }
+}
+
+// Logger for the adb communication, parses and logs the incoming data.
+// Does nothing otherwise, the incoming stream is passed through.
+class AdbCommunicationLogger extends Transform {
+    private dataEventHandler;
+
+    constructor(loggerConfig: LoggerConfig, opts?: TransformOptions) {
+        super(opts);
+
+        this.dataEventHandler = AdbTransportProtocolHandler.createDataEventHandler(async () => {}, loggerConfig);
+    }
+
+    _transform(chunk: any, encoding: BufferEncoding, callback: TransformCallback): void {
+        this.dataEventHandler(chunk.buffer);
+
+        this.push(chunk);
+        callback();
+    }
+}
+
 export class AdbTcpTransport implements AdbTransport {
     private host: string;
     private port: number;
@@ -28,7 +66,7 @@ export class AdbTcpTransport implements AdbTransport {
 
     private handleClose = (hadError: boolean) => {
         this._connected = false;
-        this.events.emit('disconect');
+        this.events.emit('disconnect');
     }
 
     async connect(): Promise<void> {
@@ -55,55 +93,20 @@ export class AdbTcpTransport implements AdbTransport {
 
         this._connected = true;
     }
-    
-    async write(buffer: ArrayBuffer): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            this.socket.write(new Uint8Array(buffer), (err) => {
-                err ? reject(err) : resolve();
-            });
-        });
-    }
 
-    async read(length: number, timeout?: number): Promise<ArrayBuffer> {
-        const b = await new Promise<Buffer>((resolve, reject) => {
-            if (this.socket.readableLength >= length) {
-                resolve(this.socket.read(length) as Buffer);
-                return;
-            }
-
-            let timeoutId: NodeJS.Timeout|undefined;
-            let readAndResolve = (timeout = false) => {
-                let buffer = this.socket.read(length);
-
-                if (timeoutId) {
-                    clearTimeout(timeoutId);
-                }
-
-                this.socket.off("readable", readableListener);
-                this.socket.off("end", readAndResolve);
-
-                if (buffer === null) {
-                    return reject(new Error(timeout ? "Could not read data in specified time" : "Connection closed"));
-                }
-
-                return resolve(buffer);
-            };
-
-            let readableListener = () => {
-                if (this.socket.readableLength >= length) {
-                    readAndResolve();
-                }
-            };
-
-            this.socket.on("readable", readableListener);
-            this.socket.on("end", readAndResolve);
-
-            if (timeout) {
-                timeoutId = setTimeout(() => readAndResolve(true), timeout);
-            }
+    async pipe(ws: WebSocket) {
+        // Our ws uses binaryType arraybuffer, which does not work with streams.
+        // Set readableObjectMode to true and convert the arraybuffer to buffer in the pipe.
+        const wsStream = createWebSocketStream(ws, {
+            readableObjectMode: true,
         });
 
-        return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength);
+        wsStream
+            .pipe(new ConvertToBuffer())
+            .pipe(new AdbCommunicationLogger({ tag: this.serial, direction: "<=="}))
+            .pipe(this.socket)
+            .pipe(new AdbCommunicationLogger({ tag: this.serial, direction: "==>"}))
+            .pipe(wsStream, {end: false});
     }
 
     async dispose(): Promise<void> {
