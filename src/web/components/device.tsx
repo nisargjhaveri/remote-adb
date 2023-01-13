@@ -5,7 +5,7 @@ import { Label } from '@fluentui/react/lib/Label';
 import { Icon } from '@fluentui/react/lib/Icon';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
-import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
+import { NeutralColors } from '@fluentui/theme';
 
 import { RemoteAdbDevice } from '../../client/UsbDeviceManager';
 import { ServerConnection } from '../../client/ServerConnection';

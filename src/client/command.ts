@@ -162,7 +162,7 @@ async function getTcpDevice(serial: string): Promise<RemoteAdbDevice|undefined> 
     try {
         const url = new URL(`tcp://${serial}`);
 
-        if (!url.hostname || !url.port || Number(url.port) == NaN
+        if (!url.hostname || !url.port || Number.isNaN(Number(url.port))
             || url.pathname || url.search || url.hash || url.username || url.password)
         {
             return;

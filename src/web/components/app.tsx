@@ -4,7 +4,7 @@ import { Stack } from '@fluentui/react/lib/Stack';
 import { Text } from '@fluentui/react/lib/Text';
 import { Link } from '@fluentui/react/lib/Link';
 import { PrimaryButton } from '@fluentui/react/lib/Button';
-import { NeutralColors } from '@fluentui/theme/lib/colors/FluentColors';
+import { NeutralColors } from '@fluentui/theme';
 import { Device } from './device';
 
 import { RemoteAdbDevice, UsbDeviceManager } from '../../client/UsbDeviceManager';
