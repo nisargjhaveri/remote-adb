@@ -67,7 +67,7 @@ export async function monitorAdbServer() {
             setTimeout(resolve, 1000);
         });
 
-        let socket = net.connect(5037);
+        let socket = net.connect(5037, "127.0.0.1");
 
         socket.on("connect", () => {
             adbMonitorConnected(socket);
@@ -75,7 +75,7 @@ export async function monitorAdbServer() {
 
         await new Promise<void>((resolve, reject) => {
             socket.on("error", (e) => {
-                // Do othing
+                // Do nothing
             });
 
             socket.on("close", (hadError) => {
@@ -114,7 +114,7 @@ function adbMessage(message: string) {
 async function adbConnect(port: Number, disconnect?: boolean) {
     console.log(port, disconnect ? "disconnecting device from adb" : "connecting device to adb");
 
-    let socket = net.connect(5037);
+    let socket = net.connect(5037, "127.0.0.1");
 
     socket.on("connect", () => {
         socket.write(adbMessage(`host:${disconnect ? "disconnect" : "connect"}:127.0.0.1:${port}`));
