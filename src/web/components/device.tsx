@@ -7,6 +7,7 @@ import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme';
 
+import logger from '../../common/logger';
 import { RemoteAdbDevice } from '../../client/UsbDeviceManager';
 import { ServerConnection } from '../../client/ServerConnection';
 
@@ -26,7 +27,7 @@ function CommunicationSpeed(props: {device: RemoteAdbDevice}) {
             down: Math.floor((device.bytesTransferred.down - speedCounterState.down) * 1000 / timeElapsed),
         });
 
-        // console.log(currentTime, timeElapsed, device.bytesTransferred, speedCounterState);
+        // logger.log(currentTime, timeElapsed, device.bytesTransferred, speedCounterState);
 
         setSpeedConunterState({
             up: device.bytesTransferred.up,
@@ -92,7 +93,7 @@ export function Device(props: {device: RemoteAdbDevice, serverConnection: Server
             await device.connect(serverConnection);
         }
         catch (e) {
-            console.log(e);
+            logger.log(e);
             setError(e.message);
         }
         connecting = false;

@@ -1,4 +1,5 @@
 import * as net from 'net';
+import logger from '../common/logger';
 
 let adbConnection: net.Socket|undefined;
 let connectedDevices: Set<Number> = new Set();
@@ -7,12 +8,12 @@ async function adbMonitorDisconnected() {
     if (!adbConnection) { return; }
 
     adbConnection = undefined;
-    console.log("adb server disconnected");
+    logger.log("adb server disconnected");
 }
 
 async function adbMonitorConnected(socket: net.Socket) {
     adbConnection = socket;
-    console.log("adb server connected");
+    logger.log("adb server connected");
 
     let gotSuccessResponse = false;
     let success = false;
@@ -22,7 +23,7 @@ async function adbMonitorConnected(socket: net.Socket) {
             if (header === "OKAY") {
                 gotSuccessResponse = true;
                 success = true;
-                console.log("track-devices", "OKAY");
+                logger.log("track-devices", "OKAY");
             }
             else if (header === "FAIL") {
                 gotSuccessResponse = true;
@@ -31,7 +32,7 @@ async function adbMonitorConnected(socket: net.Socket) {
                 // parse the failure message
                 let length = parseInt(data.slice(4, 8).toString("utf8"), 16);
                 let message = data.slice(8, 4 + length).toString("utf8");
-                console.log("track-devices", "FAIL", message);
+                logger.log("track-devices", "FAIL", message);
             }
             else {
                 // Something wrong
@@ -41,8 +42,8 @@ async function adbMonitorConnected(socket: net.Socket) {
         else {
             let length = parseInt(header, 16);
             let message = data.slice(4, 4 + length).toString("utf8");
-            console.log("track-devices");
-            console.log(message);
+            logger.log("track-devices");
+            logger.log(message);
         }
     });
 
@@ -53,7 +54,7 @@ async function adbMonitorConnected(socket: net.Socket) {
 
 async function addAllAdbDevices() {
     if (!connectedDevices.size) return;
-    console.log("try adding all previous devices");
+    logger.log("try adding all previous devices");
 
     connectedDevices.forEach((port) => {
         adbConnect(port);
@@ -61,7 +62,7 @@ async function addAllAdbDevices() {
 }
 
 export async function monitorAdbServer() {
-    console.log("Monitoring adb server");
+    logger.log("Monitoring adb server");
     do {
         let timer = new Promise((resolve, reject) => {
             setTimeout(resolve, 1000);
@@ -112,7 +113,7 @@ function adbMessage(message: string) {
 }
 
 async function adbConnect(port: Number, disconnect?: boolean) {
-    console.log(port, disconnect ? "disconnecting device from adb" : "connecting device to adb");
+    logger.log(port, disconnect ? "disconnecting device from adb" : "connecting device to adb");
 
     let socket = net.connect(5037, "127.0.0.1");
 
@@ -128,7 +129,7 @@ async function adbConnect(port: Number, disconnect?: boolean) {
             if (header === "OKAY") {
                 gotSuccessResponse = true;
                 success = true;
-                // console.log(port, "OKAY");
+                // logger.log(port, "OKAY");
             }
             else if (header === "FAIL") {
                 gotSuccessResponse = true;
@@ -137,7 +138,7 @@ async function adbConnect(port: Number, disconnect?: boolean) {
                 // parse the failure message
                 let length = parseInt(data.slice(4, 8).toString("utf8"), 16);
                 let message = data.slice(8, 4 + length).toString("utf8");
-                console.log(port, "FAIL", message);
+                logger.log(port, "FAIL", message);
             }
             else {
                 // Something wrong
@@ -147,7 +148,7 @@ async function adbConnect(port: Number, disconnect?: boolean) {
         else {
             let length = parseInt(header, 16);
             let message = data.slice(4, 4 + length).toString("utf8");
-            console.log(port, message);
+            logger.log(port, message);
         }
     });
 

@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import logger from '../common/logger';
 import { AdbTransport, WebSocket } from './AdbTransport';
 import AdbTransportProtocolHandler from './AdbTransportProtocolHandler';
 
@@ -115,7 +116,7 @@ export class AdbWebUsbTransport implements AdbTransport {
     private wsSendOrIgnore(ws: WebSocket, buffer: ArrayBuffer, logTag: string) {
         // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
         if (ws.readyState !== ws.OPEN) {
-            console.warn(logTag, "WebSocket is not open. Ignoring sent data");
+            logger.warn(logTag, "WebSocket is not open. Ignoring sent data");
             return;
         }
         ws.send(buffer);
@@ -126,7 +127,7 @@ export class AdbWebUsbTransport implements AdbTransport {
     private async backendWriteOrIgnore(backend: this, buffer: ArrayBuffer, logTag: string) {
         // We sometimes need to ignore stale data coming from usb before the connection is initialized from the adb server.
         if (!backend.connected) {
-            console.warn(logTag, "Device is not connected. Ignoring sent data");
+            logger.warn(logTag, "Device is not connected. Ignoring sent data");
             return;
         }
         await backend.write(buffer);
@@ -185,7 +186,7 @@ export class AdbWebUsbTransport implements AdbTransport {
             await this._device.close();
         }
         catch (e: any) {
-            // console.log(e.message);
+            // logger.log(e.message);
         }
     }
 }

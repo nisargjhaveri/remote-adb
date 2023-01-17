@@ -2,6 +2,7 @@ import EventEmitter = require('events');
 
 import { WebUSB } from 'usb';
 
+import logger from '../common/logger';
 import { AdbWebUsbTransport, WebUsbDeviceFilter } from './AdbWebUsbTransport';
 import { RemoteAdbDevice } from './RemoteAdbDevice';
 export { RemoteAdbDevice } from './RemoteAdbDevice';
@@ -56,7 +57,7 @@ class UsbDeviceManagerSingleton {
             return;
         }
 
-        console.log("Refreshing device list");
+        logger.log("Refreshing device list");
 
         const devices = await this.getDevices();
 

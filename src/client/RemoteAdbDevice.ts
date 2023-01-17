@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import logger from '../common/logger';
 import { AdbTransport } from "./AdbTransport";
 import { ServerConnection, WebSocket } from "./ServerConnection";
 
@@ -32,9 +33,9 @@ export class RemoteAdbDevice extends EventEmitter {
     connect = async (serverConnection: ServerConnection) => {
         // Connect with the backend
         await this.backend.connect();
-        console.log(this.backend.serial, `${this.backend.type} connected`);
+        logger.log(this.backend.serial, `${this.backend.type} connected`);
         this.backend.ondisconnect(() => {
-            console.log(this.backend.serial, `${this.backend.type} closed. Closing WebSocket.`);
+            logger.log(this.backend.serial, `${this.backend.type} closed. Closing WebSocket.`);
             this.disconnectWebSocket(true);
         });
 
@@ -60,11 +61,11 @@ export class RemoteAdbDevice extends EventEmitter {
         });
 
         this.ws.onclose = () => {
-            console.log(this.backend.serial, "WebSocket closed. Closing device.");
+            logger.log(this.backend.serial, "WebSocket closed. Closing device.");
             this.disconnectBackend(true);
         }
 
-        console.log(this.backend.serial, "WebSocket connected");
+        logger.log(this.backend.serial, "WebSocket connected");
 
         await this.backend.pipe(this.ws);
 
@@ -73,7 +74,7 @@ export class RemoteAdbDevice extends EventEmitter {
 
     private disconnectBackend = async (emit: boolean) => {
         await this.backend.dispose();
-        console.log(this.backend.serial, `${this.backend.type} closed`);
+        logger.log(this.backend.serial, `${this.backend.type} closed`);
 
         if (emit) {
             this.emit("disconnected", this);
@@ -83,7 +84,7 @@ export class RemoteAdbDevice extends EventEmitter {
     private disconnectWebSocket = async (emit: boolean) => {
         this.ws.onclose = undefined;
         this.ws.close();
-        console.log(this.backend.serial, `WebSocket closed`);
+        logger.log(this.backend.serial, `WebSocket closed`);
 
         if (emit) {
             this.emit("disconnected", this);

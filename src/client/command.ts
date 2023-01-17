@@ -1,4 +1,5 @@
 import { Argv, CommandModule } from 'yargs';
+import logger from '../common/logger';
 import { AdbTcpTransport } from './AdbTcpTransport';
 import { ServerConnection } from './ServerConnection';
 import { RemoteAdbDevice, UsbDeviceManager } from './UsbDeviceManager';
@@ -12,14 +13,14 @@ export const commandDevices = {
     },
     handler: (args: {}) => {
         if (!UsbDeviceManager.isSupported()) {
-            console.error("USB devices are not supported");
+            logger.error("USB devices are not supported");
             return;
         }
 
         UsbDeviceManager.getDevices().then((devices) => {
-            console.log("List of devices attached");
+            logger.log("List of devices attached");
             devices.forEach((d) => {
-                console.log(`${d.serial}\t${d.name}`);
+                logger.log(`${d.serial}\t${d.name}`);
             });
             process.exit(0);
         });
@@ -73,35 +74,35 @@ async function connect(args: {server?: string, serial?: string, password?: strin
         process.exit(1);
     }
 
-    console.log(`Preparing to connect device "${device.name} (${device.serial})"`);
+    logger.log(`Preparing to connect device "${device.name} (${device.serial})"`);
 
     const serverConnection = new ServerConnection(args.server);
 
-    console.log("Connecting to server for status");
+    logger.log("Connecting to server for status");
     const status = await serverConnection.getServerStatus();
 
     if (status._error) {
-        console.error(`Cannot get server status: ${status._error}`);
+        logger.error(`Cannot get server status: ${status._error}`);
         process.exit(3);
     }
     else if (status.loginSupported && status.loginRequired) {
         if (!args.password) {
-            console.error("Server requires authentication. Please provide a password with --password.");
+            logger.error("Server requires authentication. Please provide a password with --password.");
             process.exit(4);
         }
 
-        console.log("Server requires authentication. Trying to login.")
+        logger.log("Server requires authentication. Trying to login.")
         try {
             await serverConnection.login(args.password);
         }
         catch (e) {
-            console.error(`Authentication failed: ${e.message}`);
+            logger.error(`Authentication failed: ${e.message}`);
             process.exit(5);
         }
-        console.log("Authentication successful");
+        logger.log("Authentication successful");
     }
 
-    console.log(`Connecting device "${device.name} (${device.serial})"`);
+    logger.log(`Connecting device "${device.name} (${device.serial})"`);
 
     device.on("disconnected", () => {
         process.exit(0);
@@ -111,12 +112,12 @@ async function connect(args: {server?: string, serial?: string, password?: strin
         await device.connect(serverConnection);
     }
     catch (e: any) {
-        console.error(`Unable to connect device: ${e.message}`);
+        logger.error(`Unable to connect device: ${e.message}`);
         process.exit(2);
     }
 
     process.on("SIGINT", async () => {
-        console.log("Disconnecting device");
+        logger.log("Disconnecting device");
         await device.disconnect();
         process.exit(0);
     })
@@ -124,7 +125,7 @@ async function connect(args: {server?: string, serial?: string, password?: strin
 
 async function ensureUsbDevice(serial: string): Promise<RemoteAdbDevice> {
     if (!UsbDeviceManager.isSupported()) {
-        console.error("USB devices are not supported");
+        logger.error("USB devices are not supported");
         process.exit(1);
     }
 
@@ -137,18 +138,18 @@ async function ensureUsbDevice(serial: string): Promise<RemoteAdbDevice> {
         });
 
         if (!filtered.length) {
-            console.error(`Could not find connected device with serial "${serial}"`);
+            logger.error(`Could not find connected device with serial "${serial}"`);
             process.exit(1);
         }
 
         device = filtered[0];
     }
     else if (devices.length > 1) {
-        console.error("More than one devices connected. Please specify a device with --serial.");
+        logger.error("More than one devices connected. Please specify a device with --serial.");
         process.exit(1);
     }
     else if (!devices.length) {
-        console.error("No USB devices connected");
+        logger.error("No USB devices connected");
         process.exit(1);
     }
     else {

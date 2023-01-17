@@ -8,6 +8,7 @@ import session from 'express-session';
 import bodyParser from 'body-parser';
 import WebSocket from 'ws';
 
+import logger from '../common/logger';
 import { monitorAdbServer, addAdbDevice, removeAdbDevice } from './adbConnection';
 
 declare module 'express-session' {
@@ -125,7 +126,7 @@ export class Server {
         this.port = serverAddress.port;
 
         const url = `${useHttps ? 'https' : 'http'}://localhost:${this.port}`;
-        console.log(`Started listening on ${url}`);
+        logger.log(`Started listening on ${url}`);
 
         // Start monitoring adb server
         monitorAdbServer();
@@ -134,7 +135,7 @@ export class Server {
     }
 
     private handleWsConnection = (ws: WebSocket) => {
-        console.log("Got a socket connection");
+        logger.log("Got a socket connection");
 
         let wsStream = WebSocket.createWebSocketStream(ws);
         wsStream.on("error", () => {
@@ -152,13 +153,13 @@ export class Server {
             });
         }).listen(0, () => {
             port = (server.address() as net.AddressInfo).port;
-            console.log(port, "New device");
+            logger.log(port, "New device");
 
             addAdbDevice(port);
         });
 
         ws.on("close", () => {
-            console.log(port, "Device lost");
+            logger.log(port, "Device lost");
 
             server.close();
             removeAdbDevice(port);

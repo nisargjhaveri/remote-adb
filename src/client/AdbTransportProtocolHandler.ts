@@ -1,6 +1,8 @@
 // This class knows and handles ADB Transport protocol.
 // Details: https://android.googlesource.com/platform/packages/modules/adb/+/master/protocol.txt
 
+import logger from '../common/logger';
+
 export type LoggerConfig = {
     // enabled: boolean,
     tag: string,
@@ -41,21 +43,21 @@ export class AdbTransportProtocolHandler {
 
                 let payload_length = this.getPayloadLength(buffer);
 
-                console.log(loggerConfig.tag, loggerConfig.direction, "header", payload_length);
+                logger.log(loggerConfig.tag, loggerConfig.direction, "header", payload_length);
 
                 // Read payload as well
                 while (payload_length > 0) {
                     buffer = await pull(payload_length);
                     await push(buffer);
 
-                    console.log(loggerConfig.tag, loggerConfig.direction, `payload ${payload_length} bytes`);
+                    logger.log(loggerConfig.tag, loggerConfig.direction, `payload ${payload_length} bytes`);
                     payload_length -= buffer.byteLength;
                 }
             }
             while (isConnected());
         }
         catch (e) {
-            console.error(loggerConfig.tag, e);
+            logger.error(loggerConfig.tag, e);
         }
 
         return;
@@ -83,7 +85,7 @@ export class AdbTransportProtocolHandler {
                 case AWAITING_HEADER:
                     if (data.byteLength < 24) {
                         pending_data = data;
-                        console.log(`Was expecting 24 bytes, but got ${data.byteLength} bytes. Waiting for more data`);
+                        logger.log(`Was expecting 24 bytes, but got ${data.byteLength} bytes. Waiting for more data`);
                     }
                     else {
                         let buffer = data.slice(0, 24);
@@ -92,7 +94,7 @@ export class AdbTransportProtocolHandler {
                         // let packetHeader = await parsePacketHeader(buffer, backend);
                         payload_length = this.getPayloadLength(buffer); //packetHeader.payloadLength;
 
-                        console.log(loggerConfig.tag, loggerConfig.direction, "header", payload_length);
+                        logger.log(loggerConfig.tag, loggerConfig.direction, "header", payload_length);
 
                         if (payload_length > 0) {
                             state = AWAITING_PAYLOAD;
@@ -112,7 +114,7 @@ export class AdbTransportProtocolHandler {
                     }
                     else {
                         await push(data);
-                        console.log(loggerConfig.tag, loggerConfig.direction, `payload ${payload_length} bytes`);
+                        logger.log(loggerConfig.tag, loggerConfig.direction, `payload ${payload_length} bytes`);
 
                         payload_length -= data.byteLength;
 
