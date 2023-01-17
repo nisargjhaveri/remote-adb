@@ -35,7 +35,7 @@ export class Server {
         return this.loginSupported && !req.session.userId;
     } 
 
-    start() {
+    async start(): Promise<string> {
         const app = express();
         const useHttps = !!this.httpsOptions;
         const server = useHttps ? https.createServer(this.httpsOptions, app) : http.createServer(app);
@@ -112,13 +112,25 @@ export class Server {
             })
         });
 
-        // Start the server
-        server.listen(this.port, () => {
-            this.port = (server.address() as net.AddressInfo).port;
-            console.log(`Started listening on ${useHttps ? 'https' : 'http'}://localhost:${this.port}`);
+        // Start listening
+        const serverAddress = await new Promise<net.AddressInfo>((resolve, reject) => {
+            server.on("error", reject);
+
+            // Start the server
+            server.listen(this.port, () => {
+                resolve(server.address() as net.AddressInfo);
+            });
         });
 
+        this.port = serverAddress.port;
+
+        const url = `${useHttps ? 'https' : 'http'}://localhost:${this.port}`;
+        console.log(`Started listening on ${url}`);
+
+        // Start monitoring adb server
         monitorAdbServer();
+
+        return url;
     }
 
     private handleWsConnection = (ws: WebSocket) => {
