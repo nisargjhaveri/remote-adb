@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## v2.1.0
+- Add type information and make this package work as a library as well
+- Expose Server interface for programmatic  use
+
 ## v2.0.0
 - Major changes and refactoring in the internal APIs to allow for more complex scenarios
 - Add Node.js client using node-usb
