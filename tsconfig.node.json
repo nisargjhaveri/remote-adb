@@ -3,5 +3,6 @@
     "exclude": ["src/web/"],
     "compilerOptions": {
         "target": "es6",
+        "declaration": true
     },
 }
