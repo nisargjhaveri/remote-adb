@@ -7,6 +7,7 @@ import express, { Request } from 'express';
 import session from 'express-session';
 import bodyParser from 'body-parser';
 import WebSocket from 'ws';
+import stoppable from 'stoppable';
 
 import logger from '../common/logger';
 import { monitorAdbServer, addAdbDevice, removeAdbDevice } from './adbConnection';
@@ -21,6 +22,8 @@ export class Server {
     private port: number;
     private httpsOptions: https.ServerOptions;
     private password: string|undefined;
+
+    private server: (http.Server|https.Server) & stoppable.WithStop;
 
     constructor(port: number, httpsOptions?: https.ServerOptions, password?: string) {
         this.port = port;
@@ -39,7 +42,10 @@ export class Server {
     async start(): Promise<string> {
         const app = express();
         const useHttps = !!this.httpsOptions;
-        const server = useHttps ? https.createServer(this.httpsOptions, app) : http.createServer(app);
+        const server = stoppable(
+            useHttps ? https.createServer(this.httpsOptions, app) : http.createServer(app),
+            1000 /*grace*/
+        );
         const wss = new WebSocket.Server({ noServer: true });
 
         // Setup authentication
@@ -123,6 +129,7 @@ export class Server {
             });
         });
 
+        this.server = server;
         this.port = serverAddress.port;
 
         const url = `${useHttps ? 'https' : 'http'}://localhost:${this.port}`;
@@ -132,6 +139,28 @@ export class Server {
         monitorAdbServer();
 
         return url;
+    }
+
+    async stop (): Promise<void> {
+        if (this.server) {
+            await new Promise<void>((resolve, reject) => {
+                this.server.stop((e) => {
+                    if (e) {
+                        return reject(e);
+                    }
+
+                    resolve();
+                })
+            });
+
+            logger.log(`Stopped listening on ${this.port}`);
+        }
+        this.server.removeAllListeners();
+        this.server = undefined;
+    }
+
+    isListening(): boolean {
+        return this.server && this.server.listening;
     }
 
     private handleWsConnection = (ws: WebSocket) => {
