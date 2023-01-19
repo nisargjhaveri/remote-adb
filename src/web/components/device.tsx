@@ -8,7 +8,7 @@ import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme';
 
 import logger from '../../common/logger';
-import { RemoteAdbDevice } from '../../client/UsbDeviceManager';
+import { RemoteAdbDevice } from '../../client/RemoteAdbDevice';
 import { ServerConnection } from '../../client/ServerConnection';
 
 import * as bytes from 'bytes';

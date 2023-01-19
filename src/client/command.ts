@@ -1,8 +1,9 @@
 import { Argv, CommandModule } from 'yargs';
 import logger from '../common/logger';
-import { AdbTcpTransport } from './AdbTcpTransport';
 import { ServerConnection } from './ServerConnection';
-import { RemoteAdbDevice, UsbDeviceManager } from './UsbDeviceManager';
+import { RemoteAdbDevice } from './RemoteAdbDevice';
+import { TcpDeviceManager } from './TcpDeviceManager';
+import { UsbDeviceManager } from './UsbDeviceManager';
 
 export const commandDevices = {
     command: "devices",
@@ -64,7 +65,7 @@ async function connect(args: {server?: string, serial?: string, password?: strin
     let device: RemoteAdbDevice;
 
     // First try to see if this is a tcp device
-    device = await getTcpDevice(args.serial);
+    device = await TcpDeviceManager.getTcpDevice(args.serial);
 
     // Find usb device with serial or exit
     device = device || await ensureUsbDevice(args.serial);
@@ -157,21 +158,4 @@ async function ensureUsbDevice(serial: string): Promise<RemoteAdbDevice> {
     }
 
     return device;
-}
-
-async function getTcpDevice(serial: string): Promise<RemoteAdbDevice|undefined> {
-    try {
-        const url = new URL(`tcp://${serial}`);
-
-        if (!url.hostname || !url.port || Number.isNaN(Number(url.port))
-            || url.pathname || url.search || url.hash || url.username || url.password)
-        {
-            return;
-        }
-
-        return new RemoteAdbDevice(new AdbTcpTransport(url.hostname, Number(url.port)));
-    }
-    catch {
-        return;
-    }
 }

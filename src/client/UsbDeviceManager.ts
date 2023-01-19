@@ -5,7 +5,6 @@ import { WebUSB } from 'usb';
 import logger from '../common/logger';
 import { AdbWebUsbTransport, WebUsbDeviceFilter } from './AdbWebUsbTransport';
 import { RemoteAdbDevice } from './RemoteAdbDevice';
-export { RemoteAdbDevice } from './RemoteAdbDevice';
 
 
 class UsbDeviceManagerSingleton {

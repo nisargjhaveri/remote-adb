@@ -7,7 +7,8 @@ import { PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme';
 import { Device } from './device';
 
-import { RemoteAdbDevice, UsbDeviceManager } from '../../client/UsbDeviceManager';
+import { RemoteAdbDevice } from '../../client/RemoteAdbDevice';
+import { UsbDeviceManager } from '../../client/UsbDeviceManager';
 import { ServerConnection } from '../../client/ServerConnection';
 
 import { initializeIcons } from '@fluentui/font-icons-mdl2';
