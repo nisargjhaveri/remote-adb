@@ -1,7 +1,12 @@
 import { AdbTcpTransport } from './AdbTcpTransport';
 import { RemoteAdbDevice } from './RemoteAdbDevice';
+import type { ITcpDeviceManager } from './ITcpDeviceManager';
 
-class TcpDeviceManagerSingleton {
+class TcpDeviceManagerSingleton implements ITcpDeviceManager {
+    isSupported(): boolean {
+        return true;
+    }
+
     async getTcpDevice(serial: string): Promise<RemoteAdbDevice|undefined> {
         try {
             const url = new URL(`tcp://${serial}`);
@@ -20,4 +25,4 @@ class TcpDeviceManagerSingleton {
     }
 }
 
-export const TcpDeviceManager = new TcpDeviceManagerSingleton();
+export const TcpDeviceManager: ITcpDeviceManager = new TcpDeviceManagerSingleton();

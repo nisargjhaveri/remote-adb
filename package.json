@@ -5,6 +5,7 @@
   "license": "MIT",
   "repository": "github:nisargjhaveri/remote-adb",
   "main": "./dist/index.js",
+  "browser": "./dist/index-browser.js",
   "bin": "./dist/cli.js",
   "types": "./dist/index.d.ts",
   "scripts": {
