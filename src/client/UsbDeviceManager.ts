@@ -11,16 +11,23 @@ class UsbDeviceManagerSingleton {
     private events = new EventEmitter();
     private connectedDevices = new Map<USBDevice, RemoteAdbDevice>();
 
-    private get usb() {
-        if (typeof navigator !== "undefined") {
-            return navigator?.usb;
+    private _usb: USB = undefined;
+    private _usbInitialized: boolean = false;
+    private get usb(): USB {
+        if (!this._usbInitialized) {
+            if (typeof navigator !== "undefined") {
+                this._usb = navigator?.usb;
+            }
+            if (typeof WebUSB !== "undefined") {
+                this._usb = new WebUSB({
+                    allowAllDevices: true
+                });
+            }
+
+            this._usbInitialized = true;
         }
-        if (typeof WebUSB !== "undefined") {
-            return new WebUSB({
-                allowAllDevices: true
-            });
-        }
-        return undefined;
+
+        return this._usb;
     }
 
     constructor() {
