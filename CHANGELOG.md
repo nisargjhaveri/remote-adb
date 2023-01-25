@@ -1,8 +1,12 @@
 # CHANGELOG
 
+## v2.2.0
+- Expose Client interface as well for programmatic use
+- Improvements in library interface, other fixes
+
 ## v2.1.0
 - Add type information and make this package work as a library as well
-- Expose Server interface for programmatic  use
+- Expose Server interface for programmatic use
 
 ## v2.0.0
 - Major changes and refactoring in the internal APIs to allow for more complex scenarios
