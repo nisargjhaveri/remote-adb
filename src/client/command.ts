@@ -18,10 +18,19 @@ export const commandDevices = {
             return;
         }
 
-        UsbDeviceManager.getDevices().then((devices) => {
-            logger.log("List of devices attached");
-            devices.forEach((d) => {
-                logger.log(`${d.serial}\t${d.name}`);
+        Promise.all([UsbDeviceManager.getDevices(), TcpDeviceManager.getDevices()])
+            .then(([usbDevices, tcpDevices]) => {
+                return usbDevices.concat(tcpDevices);
+            })
+            .then((devices) => {
+                logger.log("List of devices attached");
+                devices.forEach((d) => {
+                    if (d.name != d.serial) {
+                        logger.log(`${d.serial}\t${d.name}`);
+                    }
+                    else {
+                        logger.log(`${d.serial}`);
+                    }
             });
             process.exit(0);
         });
@@ -65,7 +74,7 @@ async function connect(args: {server?: string, serial?: string, password?: strin
     let device: RemoteAdbDevice;
 
     // First try to see if this is a tcp device
-    device = await TcpDeviceManager.getTcpDevice(args.serial);
+    device = await TcpDeviceManager.createDevice(args.serial);
 
     // Find usb device with serial or exit
     device = device || await ensureUsbDevice(args.serial);

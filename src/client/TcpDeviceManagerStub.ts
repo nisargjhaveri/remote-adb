@@ -6,7 +6,15 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
         return false;
     }
 
-    getTcpDevice(serial: string): Promise<RemoteAdbDevice> {
+    createDevice(serial: string): Promise<RemoteAdbDevice> {
+        throw new Error('Method not implemented.');
+    }
+
+    removeDevice(serial: string): Promise<void> {
+        throw new Error('Method not implemented.');
+    }
+
+    getDevices(): Promise<RemoteAdbDevice[]> {
         throw new Error('Method not implemented.');
     }
 }

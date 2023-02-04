@@ -2,5 +2,9 @@ import type { RemoteAdbDevice } from './RemoteAdbDevice';
 
 export interface ITcpDeviceManager {
     isSupported(): boolean;
-    getTcpDevice(serial: string): Promise<RemoteAdbDevice|undefined>;
+
+    createDevice(serial: string): Promise<RemoteAdbDevice|undefined>;
+    removeDevice(serial: string): Promise<void>;
+
+    getDevices(): Promise<RemoteAdbDevice[]>;
 }
