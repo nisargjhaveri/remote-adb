@@ -7,4 +7,5 @@ export interface ITcpDeviceManager {
     removeDevice(serial: string): Promise<void>;
 
     getDevices(): Promise<RemoteAdbDevice[]>;
+    monitorDevices(callback: (devices: RemoteAdbDevice[]) => void): void;
 }

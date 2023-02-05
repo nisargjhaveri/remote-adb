@@ -1,15 +1,23 @@
+import EventEmitter from 'events';
 import * as net from 'net';
+
 import { AdbTcpTransport } from './AdbTcpTransport';
 import { RemoteAdbDevice } from './RemoteAdbDevice';
 import type { ITcpDeviceManager } from './ITcpDeviceManager';
 
-let EMULATOR_DEFAULT_PORT = 5555;
-let EMULATOR_MAX_PORT = 5585;
-let EMULATOR_HOST = "127.0.0.1"
+const EMULATOR_DEFAULT_PORT = 5555;
+const EMULATOR_MAX_PORT = 5585;
+const EMULATOR_HOST = "127.0.0.1"
+
+const REFRESH_LOOP_TIMEOUT = 5000;
 
 class TcpDeviceManagerSingleton implements ITcpDeviceManager {
+    private events = new EventEmitter();
+
     private connectedDevices = new Map<string, RemoteAdbDevice>();
     private connectedEmulators = new Map<string, RemoteAdbDevice>();
+
+    private refreshLoopTimeout: NodeJS.Timeout;
 
     isSupported(): boolean {
         return true;
@@ -20,6 +28,7 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
 
         if (device) {
             this.connectedDevices.set(serial, device);
+            this.notifyDevicesRefreshed();
         }
 
         return device;
@@ -32,7 +41,9 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
             await device.disconnect();
         }
 
-        this.connectedDevices.delete(serial);
+        if (this.connectedDevices.delete(serial)) {
+            this.notifyDevicesRefreshed();
+        }
     }
 
     private async getOrCreateTcpDevice(serial: string): Promise<RemoteAdbDevice|undefined> {
@@ -74,7 +85,11 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
                 serial = `${host}:${port}`;
             }
 
-            return new RemoteAdbDevice(new AdbTcpTransport(serial, host, port));
+            const device = new RemoteAdbDevice(new AdbTcpTransport(serial, host, port));
+            device.on("connected", this.notifyDevicesRefreshed);
+            device.on("disconnected", this.notifyDevicesRefreshed);
+
+            return device;
         }
         catch {
             return;
@@ -114,7 +129,20 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
             }
         });
 
-        let devices = await Promise.all(availablePorts.map(p => this.getOrCreateTcpDevice(`emulator-${p-1}`)));
+        const serials = availablePorts.map(p => `emulator-${p-1}`);
+        const serialsSet = new Set(serials);
+
+        if (
+            // If every available serial is already seen before
+            serials.every(serial => this.connectedDevices.has(serial) || this.connectedEmulators.has(serial))
+            // And every emulator is still available
+            && Array.from(this.connectedEmulators.keys()).every(serial => serialsSet.has(serial)))
+        {
+            // No update is needed.
+            return;
+        }
+
+        let devices = await Promise.all(serials.map(serial => this.getOrCreateTcpDevice(serial)));
 
         this.connectedEmulators = new Map();
         devices.forEach(device => {
@@ -123,12 +151,34 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
                 this.connectedEmulators.set(device.serial, device);
             }
         });
+
+        this.notifyDevicesRefreshed();
+    }
+
+    private refreshEmulatorsLoop = async () => {
+        clearTimeout(this.refreshLoopTimeout);
+
+        await this.refreshEmulators();
+
+        this.refreshLoopTimeout = setTimeout(this.refreshEmulatorsLoop, REFRESH_LOOP_TIMEOUT);
+    }
+
+    private notifyDevicesRefreshed = async () => {
+        const devices = Array.from(this.connectedDevices.values()).concat(Array.from(this.connectedEmulators.values()));
+        this.events.emit("devices", devices);
     }
 
     async getDevices() {
         await this.refreshEmulators();
 
         return Array.from(this.connectedDevices.values()).concat(Array.from(this.connectedEmulators.values()));
+    }
+
+    monitorDevices(callback: (devices: RemoteAdbDevice[]) => void): void {
+        this.events.on('devices', callback);
+
+        this.notifyDevicesRefreshed();
+        this.refreshEmulatorsLoop();
     }
 }
 

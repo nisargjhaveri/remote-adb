@@ -17,6 +17,10 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
     getDevices(): Promise<RemoteAdbDevice[]> {
         throw new Error('Method not implemented.');
     }
+
+    monitorDevices(callback: (devices: RemoteAdbDevice[]) => void): void {
+        throw new Error('Method not implemented.');
+    }
 }
 
 export const TcpDeviceManager: ITcpDeviceManager = new TcpDeviceManagerSingleton();
