@@ -14,6 +14,10 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
         throw new Error('Method not implemented.');
     }
 
+    canRemoveDevice(serial: string): boolean {
+        throw new Error('Method not implemented.');
+    }
+
     getDevices(): Promise<RemoteAdbDevice[]> {
         throw new Error('Method not implemented.');
     }

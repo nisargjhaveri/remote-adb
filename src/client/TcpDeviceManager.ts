@@ -28,6 +28,7 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
 
         if (device) {
             this.connectedDevices.set(serial, device);
+            this.connectedEmulators.delete(serial);
             this.notifyDevicesRefreshed();
         }
 
@@ -44,6 +45,10 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
         if (this.connectedDevices.delete(serial)) {
             this.notifyDevicesRefreshed();
         }
+    }
+
+    canRemoveDevice(serial: string): boolean {
+        return this.connectedDevices.has(serial);
     }
 
     private async getOrCreateTcpDevice(serial: string): Promise<RemoteAdbDevice|undefined> {
