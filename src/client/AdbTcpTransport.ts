@@ -69,7 +69,8 @@ export class AdbTcpTransport implements AdbTransport {
     private _serial: string;
     public get serial(): string { return this._serial; }
 
-    public get name(): string { return this.serial; }
+    private _name: string;
+    public get name(): string { return this._name || this.serial; }
 
     private _connected = false;
     public get connected() { return this._connected; }
@@ -83,8 +84,9 @@ export class AdbTcpTransport implements AdbTransport {
     private readonly events = new EventEmitter();
     public readonly ondisconnect = (listener: (e: Event) => void) => this.events.addListener('disconnect', listener);
 
-    constructor(serial: string, host: string, port: number) {
+    constructor(serial: string, name: string, host: string, port: number) {
         this._serial = serial;
+        this._name = name;
         this.host = host;
         this.port = port;
     }

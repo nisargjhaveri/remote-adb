@@ -1,5 +1,8 @@
 import EventEmitter from 'events';
 import * as net from 'net';
+import * as os from 'os';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 
 import { AdbTcpTransport } from './AdbTcpTransport';
 import { RemoteAdbDevice } from './RemoteAdbDevice';
@@ -65,6 +68,7 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
         try {
             let host: string;
             let port: number;
+            let name: string;
 
             if (serial.startsWith("emulator-")) {
                 let consolePort = Number(serial.replace(/^emulator-/, ""));
@@ -75,6 +79,7 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
 
                 host = EMULATOR_HOST;
                 port = consolePort + 1;
+                name = await this.getEmulatorName(consolePort);
             }
             else {
                 const url = new URL(`tcp://${serial}`);
@@ -90,7 +95,7 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
                 serial = `${host}:${port}`;
             }
 
-            const device = new RemoteAdbDevice(new AdbTcpTransport(serial, host, port));
+            const device = new RemoteAdbDevice(new AdbTcpTransport(serial, name, host, port));
             device.on("connected", this.notifyDevicesRefreshed);
             device.on("disconnected", this.notifyDevicesRefreshed);
 
@@ -104,7 +109,7 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
     private async canConnectToSocket(host: string, port: number) {
         return await new Promise<void>((resolve, reject) => {
 
-            const socket = net.createConnection({
+            const socket = net.connect({
                 host,
                 port
             }, () => {
@@ -115,6 +120,61 @@ class TcpDeviceManagerSingleton implements ITcpDeviceManager {
             socket.once("error", (e) => {
                 reject(e);
             })
+        });
+    }
+
+    private async getEmulatorConsoleToken(): Promise<string|undefined> {
+        try {
+            const tokenFilePath = path.join(os.homedir(), ".emulator_console_auth_token");
+            const token = await fs.readFile(tokenFilePath, { encoding: "utf8" });
+            return token.trim();
+        }
+        catch {
+            return undefined;
+        }
+    }
+
+    private async getEmulatorName(consolePort: number): Promise<string|undefined> {
+        return new Promise((resolve, reject) => {
+            let responsesToSkip = 1;
+
+            const socket = net.connect({
+                host: EMULATOR_HOST,
+                port: consolePort,
+            }, async () => {
+                let command = "";
+
+                const token = await this.getEmulatorConsoleToken();
+                if (token) {
+                    command += `auth ${token}\n`;
+                    responsesToSkip += 1;
+                }
+
+                command += "avd name\n";
+                command += "quit\n";
+
+                socket.write(command);
+            });
+
+            let output = "";
+            socket.on("data", (data) => {
+                output += data.toString("utf8");
+            });
+
+            socket.on("end", () => {
+                let responses = output.split("OK\r\n");
+                if (responses.length === (responsesToSkip + 2)) {
+                    let name = responses[responsesToSkip].trim().replace(/_/g, " ");
+                    resolve(name);
+                }
+                else {
+                    resolve(undefined);
+                }
+            });
+
+            socket.on("error", (e) => {
+                resolve(undefined);
+            });
         });
     }
 
