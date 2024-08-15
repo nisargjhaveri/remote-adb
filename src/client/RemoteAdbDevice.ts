@@ -60,8 +60,12 @@ export class RemoteAdbDevice extends EventEmitter {
             throw e;
         });
 
-        this.ws.onclose = () => {
-            logger.log(this.backend.serial, "WebSocket closed. Closing device.");
+        this.ws.onerror = (e) => {
+            logger.log(this.backend.serial, `WebSocket error: ${e}`);
+        }
+
+        this.ws.onclose = (e) => {
+            logger.log(this.backend.serial, `WebSocket closed (code: ${e.code}${e.reason ? `, reason: ${e.reason}` : ""}). Closing device.`);
             this.disconnectBackend(true);
         }
 
