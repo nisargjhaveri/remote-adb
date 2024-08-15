@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v2.3.0
+- Allow listing and connecting to emulator with 'emulator-' serial in cli client
+- More reliable websocket connection on some proxies using periodic ping
+- Misc chores and fixes, build on node 20
+
 ## v2.2.0
 - Expose Client interface as well for programmatic use
 - Improvements in library interface, other fixes
