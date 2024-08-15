@@ -25,6 +25,8 @@ export class Server {
 
     private server: (http.Server|https.Server) & stoppable.WithStop;
 
+    private wsKeepaliveInterval: NodeJS.Timer = undefined;
+
     constructor(port: number, httpsOptions?: https.ServerOptions, password?: string) {
         this.port = port;
         this.httpsOptions = httpsOptions;
@@ -129,6 +131,20 @@ export class Server {
             });
         });
 
+        // Start websocket keepalive loop
+        this.wsKeepaliveInterval = setInterval(() => {
+            try {
+                wss.clients.forEach((ws) => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        // logger.log(new Date(), "Sending ping to client");
+                        ws.ping();
+                    }
+                });
+            } catch (e) {
+                // Do nothing
+            }
+        }, 20_000);
+
         this.server = server;
         this.port = serverAddress.port;
 
@@ -142,6 +158,13 @@ export class Server {
     }
 
     async stop (): Promise<void> {
+        // Stop websocket keepalive loop
+        if (this.wsKeepaliveInterval !== undefined) {
+            clearInterval(this.wsKeepaliveInterval);
+            this.wsKeepaliveInterval = undefined;
+        }
+
+        // Stop server if running
         if (this.server) {
             await new Promise<void>((resolve, reject) => {
                 this.server.stop((e) => {
@@ -153,10 +176,11 @@ export class Server {
                 })
             });
 
+            this.server.removeAllListeners();
+            this.server = undefined;
+
             logger.log(`Stopped listening on ${this.port}`);
         }
-        this.server.removeAllListeners();
-        this.server = undefined;
     }
 
     isListening(): boolean {
