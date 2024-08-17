@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Separator } from '@fluentui/react/lib/Separator';
 import { Stack } from '@fluentui/react/lib/Stack';
 import { Text } from '@fluentui/react/lib/Text';
 import { Link } from '@fluentui/react/lib/Link';
+import { Toggle } from '@fluentui/react/lib/Toggle';
 import { PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme';
 import { Device } from './device';
@@ -15,10 +16,15 @@ import { initializeIcons } from '@fluentui/font-icons-mdl2';
 import { Status } from './status';
 initializeIcons();
 
+const enum StoredItemKeys {
+    SettingsAutoConnectDevices = "SettingsAutoConnectDevices"
+}
+
 const serverConnection = new ServerConnection(window.location.href);
 
 export function App() {
     let [devices, setDevices] = useState<RemoteAdbDevice[]>([]);
+    let [autoConnect, setAutoConnect] = useState(() => localStorage?.getItem(StoredItemKeys.SettingsAutoConnectDevices) === "true");
 
     useEffect(() => {
         if (!UsbDeviceManager.isSupported()) {
@@ -27,6 +33,11 @@ export function App() {
 
         UsbDeviceManager.monitorDevices(setDevices);
     }, []);
+
+    const onAutoConnectToggle = useCallback((ev, checked) => {
+        setAutoConnect(checked);
+        localStorage?.setItem(StoredItemKeys.SettingsAutoConnectDevices, checked.toString());
+    }, [setAutoConnect]);
 
     return UsbDeviceManager.isSupported() ? (
         <div style={{maxWidth: 650, margin: "0 auto"}}>
@@ -41,13 +52,16 @@ export function App() {
                     <Text>Device not visible in the list below?</Text>
                     <PrimaryButton text="Add device" id="request" onClick={UsbDeviceManager.requestDevice} iconProps={{iconName: "Add"}} />
                 </Stack>
+                <Stack.Item align="center">
+                    <Toggle label="Auto-connect devices to remote when available" inlineLabel onChange={onAutoConnectToggle} checked={autoConnect} />
+                </Stack.Item>
                 {!devices.length && (
                     <Stack.Item align="center">
                         <Text style={{color: NeutralColors.gray90}}>No devices found</Text>
                     </Stack.Item>
                 )}
                 <Stack tokens={{childrenGap: 'l2', padding: 's'}}>
-                    {devices.map((device) => (<Device device={device} key={device.serial} serverConnection={serverConnection} />))}
+                    {devices.map((device) => (<Device device={device} key={device.serial} serverConnection={serverConnection} autoConnect={autoConnect} />))}
                 </Stack>
             </Stack>
         </div>
