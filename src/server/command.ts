@@ -16,12 +16,17 @@ export const commandServer = {
                 nargs: 1,
                 type: 'number',
             })
+            .option('host', {
+                describe: 'host to bind the server to',
+                nargs: 1,
+                type: 'string',
+            })
             .option('password', {
                 describe: 'specify password required to connect',
                 type: 'string',
                 nargs: 1
             })
-            .group(['port', 'password'], "Server Options:")
+            .group(['port', 'host', 'password'], "Server Options:")
             .option('key', {
                 describe: 'file containing RSA private key',
                 requiresArg: true
@@ -47,14 +52,14 @@ export const commandServer = {
             .group(['key', 'cert'], "HTTPS Options:")
             .strict()
     },
-    handler: (args: {port?: number, key?: string, cert?: string, password?: string}) => {
+    handler: (args: {port?: number, host?: string, key?: string, cert?: string, password?: string}) => {
         const useHttps = !!(args.key && args.cert);
         const httpsOptions = useHttps ? {
             key: fs.readFileSync(args.key),
             cert: fs.readFileSync(args.cert)
         } : undefined;
 
-        const listenOptions = { port: args.port };
+        const listenOptions = { port: args.port, host: args.host };
 
         new Server(listenOptions, httpsOptions, args.password).start();
     }
