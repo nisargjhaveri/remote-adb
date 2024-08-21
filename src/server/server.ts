@@ -19,16 +19,17 @@ declare module 'express-session' {
 }
 
 export class Server {
-    private port: number;
+    private listenOptions: net.ListenOptions;
     private httpsOptions: https.ServerOptions;
     private password: string|undefined;
 
+    private serverAddress: net.AddressInfo;
     private server: (http.Server|https.Server) & stoppable.WithStop;
 
     private wsKeepaliveInterval: NodeJS.Timer = undefined;
 
-    constructor(port: number, httpsOptions?: https.ServerOptions, password?: string) {
-        this.port = port;
+    constructor(listenOptions: net.ListenOptions, httpsOptions?: https.ServerOptions, password?: string) {
+        this.listenOptions = listenOptions;
         this.httpsOptions = httpsOptions;
         this.password = password
     }
@@ -126,7 +127,7 @@ export class Server {
             server.on("error", reject);
 
             // Start the server
-            server.listen(this.port, () => {
+            server.listen(this.listenOptions, () => {
                 resolve(server.address() as net.AddressInfo);
             });
         });
@@ -146,9 +147,9 @@ export class Server {
         }, 20_000);
 
         this.server = server;
-        this.port = serverAddress.port;
+        this.serverAddress = serverAddress;
 
-        const url = `${useHttps ? 'https' : 'http'}://localhost:${this.port}`;
+        const url = `${useHttps ? 'https' : 'http'}://${this.getServerAddress()}`;
         logger.log(`Started listening on ${url}`);
 
         // Start monitoring adb server
@@ -179,7 +180,7 @@ export class Server {
             this.server.removeAllListeners();
             this.server = undefined;
 
-            logger.log(`Stopped listening on ${this.port}`);
+            logger.log(`Stopped listening on ${this.getServerAddress()}`);
         }
     }
 
@@ -218,4 +219,17 @@ export class Server {
             removeAdbDevice(port);
         });
     };
+
+    private getServerAddress() {
+        if (!this.serverAddress || typeof this.serverAddress === "string") {
+            return this.serverAddress;
+        } else {
+            let host = this.serverAddress.address;
+            if (this.serverAddress.family === 'IPv6') {
+                host = `[${host}]`;
+            }
+
+            return `${host}:${this.serverAddress.port}`;
+        }
+    }
 }

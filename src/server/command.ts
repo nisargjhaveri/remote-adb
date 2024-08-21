@@ -54,6 +54,8 @@ export const commandServer = {
             cert: fs.readFileSync(args.cert)
         } : undefined;
 
-        new Server(args.port, httpsOptions, args.password).start();
+        const listenOptions = { port: args.port };
+
+        new Server(listenOptions, httpsOptions, args.password).start();
     }
 } as CommandModule;
