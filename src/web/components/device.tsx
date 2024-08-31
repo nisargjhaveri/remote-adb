@@ -6,12 +6,12 @@ import { Icon } from '@fluentui/react/lib/Icon';
 import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { DefaultButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme';
+import bytes from 'bytes';
 
-import logger from '../../common/logger';
-import { RemoteAdbDevice } from '../../client/RemoteAdbDevice';
-import { ServerConnection } from '../../client/ServerConnection';
+import logger from 'remote-adb/logger';
+import { RemoteAdbDevice } from 'remote-adb/client';
+import { ServerConnection } from 'remote-adb/client';
 
-import * as bytes from 'bytes';
 
 function CommunicationSpeed(props: {device: RemoteAdbDevice}) {
     let device: RemoteAdbDevice = props.device;
