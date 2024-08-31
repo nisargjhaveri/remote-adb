@@ -7,7 +7,7 @@ import { MessageBar, MessageBarType } from '@fluentui/react/lib/MessageBar';
 import { DefaultButton, MessageBarButton, PrimaryButton } from '@fluentui/react/lib/Button';
 import { Separator } from '@fluentui/react/lib/Separator';
 
-import { ServerStatus, ServerConnection } from 'remote-adb/client';
+import { ServerStatus, ServerConnection } from '../../client/ServerConnection';
 
 
 function LoginDialog(props: {showDialog: boolean, setShowDialog: Dispatch<SetStateAction<Boolean>>, onLoginSuccess: () => void, serverConnection: ServerConnection}) {

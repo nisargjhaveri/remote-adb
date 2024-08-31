@@ -6,15 +6,14 @@ import { Link } from '@fluentui/react/lib/Link';
 import { Toggle } from '@fluentui/react/lib/Toggle';
 import { PrimaryButton } from '@fluentui/react/lib/Button';
 import { NeutralColors } from '@fluentui/theme';
-
-import { RemoteAdbDevice } from 'remote-adb/client';
-import { UsbDeviceManager } from 'remote-adb/client';
-import { ServerConnection } from 'remote-adb/client';
-
 import { Device } from './device';
-import { Status } from './status';
+
+import { RemoteAdbDevice } from '../../client/RemoteAdbDevice';
+import { UsbDeviceManager } from '../../client/UsbDeviceManager';
+import { ServerConnection } from '../../client/ServerConnection';
 
 import { initializeIcons } from '@fluentui/font-icons-mdl2';
+import { Status } from './status';
 initializeIcons();
 
 const enum StoredItemKeys {
