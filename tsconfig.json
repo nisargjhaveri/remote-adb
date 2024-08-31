@@ -1,13 +1,15 @@
 {
     "compilerOptions": {
         "outDir": "./dist/",
-        "noImplicitAny": true,
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
         "target": "es5",
         "allowJs": false,
         "sourceMap": true,
-        "jsx": "react-jsx"
+        "jsx": "react-jsx",
+        "skipLibCheck": true,
+
+        "noImplicitAny": true,
     },
     "include": ["src"]
 }
