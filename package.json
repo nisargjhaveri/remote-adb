@@ -8,6 +8,26 @@
   "browser": "./dist/index-browser.js",
   "bin": "./dist/cli.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/index-browser.js",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "browser": "./dist/client/index-browser.js",
+      "default": "./dist/client/index.js"
+    },
+    "./logger": {
+      "types": "./dist/common/logger.d.ts",
+      "default": "./dist/common/logger.js"
+    }
+  },
   "scripts": {
     "prepare": "npm run build",
     "serve": "node ./dist/cli.js server",

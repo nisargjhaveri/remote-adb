@@ -2,12 +2,11 @@
     "compilerOptions": {
         "outDir": "./dist/",
         "noImplicitAny": true,
-        "module": "commonjs",
-        "esModuleInterop": true,
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "target": "es5",
         "allowJs": false,
         "sourceMap": true,
-        "moduleResolution": "node",
         "jsx": "react-jsx"
     },
     "include": ["src"]
