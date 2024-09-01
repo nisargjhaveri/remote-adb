@@ -47,7 +47,7 @@ export function App() {
                 <Stack.Item align="center">
                     <Text variant="mediumPlus" style={{color: NeutralColors.gray130}}>Share connected Android devices for debugging on the server</Text>
                 </Stack.Item>
-                <Status serverConnection={serverConnection} onServerConnectionReady={() => setServerConnectionReady(true)} />
+                <Status serverConnection={serverConnection} setServerConnectionReady={setServerConnectionReady} />
                 <Separator>Connected Devices</Separator>
                 <Stack horizontal tokens={{childrenGap: 'm', padding: 's'}} horizontalAlign="center" verticalAlign="center">
                     <Text>Device not visible in the list below?</Text>

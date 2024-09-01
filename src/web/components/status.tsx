@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Dispatch, SetStateAction } from 'react';
+import { useState, useEffect, useCallback, Dispatch, SetStateAction, useMemo } from 'react';
 import { Stack } from '@fluentui/react/lib/Stack';
 import { Dialog, DialogType, DialogFooter } from '@fluentui/react/lib/Dialog';
 import { TextField } from '@fluentui/react/lib/TextField';
@@ -8,6 +8,20 @@ import { DefaultButton, MessageBarButton, PrimaryButton } from '@fluentui/react/
 import { Separator } from '@fluentui/react/lib/Separator';
 
 import { ServerStatus, ServerConnection } from '../../client/ServerConnection';
+
+function DelayedProgressIndicator() {
+    const [showProgress, setShowProgress] = useState(false);
+
+    useEffect(() => {
+        let timeout = setTimeout(() => {
+            setShowProgress(true);
+        }, 200);
+
+        return () => clearTimeout(timeout);
+    }, []);
+
+    return showProgress ? <ProgressIndicator /> : null;
+}
 
 
 function LoginDialog(props: {showDialog: boolean, setShowDialog: Dispatch<SetStateAction<Boolean>>, onLoginSuccess: () => void, serverConnection: ServerConnection}) {
@@ -50,10 +64,6 @@ function LoginDialog(props: {showDialog: boolean, setShowDialog: Dispatch<SetSta
             setLoginProgress(false);
             setLoginSuccess(true);
             onLoginSuccess();
-
-            setTimeout(() => {
-                hideDialog();
-            }, 500);
         }
         catch (e) {
             loginFailed(`Login failed: ${e.message}`);
@@ -77,16 +87,8 @@ function LoginDialog(props: {showDialog: boolean, setShowDialog: Dispatch<SetSta
                     {loginError}
                 </MessageBar>
             )}
-            {loginSuccess && (
-                <MessageBar
-                    messageBarType={MessageBarType.success}
-                    isMultiline={false}
-                >
-                    Login successful
-                </MessageBar>
-            )}
             {loginProgress && (
-                <ProgressIndicator />
+                <DelayedProgressIndicator />
             )}
             <form>
                 <TextField
@@ -114,7 +116,7 @@ function StatusItem(props: {type: MessageBarType, message: string, muted?: boole
     );
 }
 
-export function Status(props: {serverConnection: ServerConnection, onServerConnectionReady: () => void}) {
+export function Status(props: {serverConnection: ServerConnection, setServerConnectionReady: (ready: boolean) => void}) {
     const [initialized, setInitialized] = useState(false);
 
     const [statusError, setStatusError] = useState(undefined);
@@ -123,20 +125,27 @@ export function Status(props: {serverConnection: ServerConnection, onServerConne
 
     const [showLoginDialog, setShowLoginDialog] = useState(false);
 
-    const { serverConnection, onServerConnectionReady } = props;
+    const { serverConnection, setServerConnectionReady } = props;
 
     const updateStatus = useCallback(async (status: ServerStatus) => {
         if (status._error) {
             setStatusError(`Cannot get server status: ${status._error}`);
+            setServerConnectionReady(false);
         }
         else {
             setStatusError(undefined)
             setLoginSupported(status.loginSupported);
             setLoginRequired(status.loginRequired);
+
+            if (status.loginSupported && status.loginRequired) {
+                setServerConnectionReady(false);
+            } else {
+                setServerConnectionReady(true);
+            }
         }
 
         setInitialized(true);
-    }, [setInitialized, setLoginSupported, setLoginRequired, setStatusError]);
+    }, [setInitialized, setLoginSupported, setLoginRequired, setStatusError, setServerConnectionReady]);
 
     // Monitor server status
     useEffect(() => {
@@ -144,21 +153,17 @@ export function Status(props: {serverConnection: ServerConnection, onServerConne
     }, [updateStatus]);
 
     // Show login dialog once initialized
-    useEffect(() => {
+    useMemo(() => {
         if (initialized) {
-            if (loginSupported && loginRequired) {
-                setShowLoginDialog(true);
-            } else {
-                onServerConnectionReady();
-            }
+            setShowLoginDialog(!statusError && loginSupported && loginRequired);
         }
-    }, [initialized]);
+    }, [initialized, statusError, loginSupported, loginRequired]);
 
     const onLoginSuccess = useCallback(() => {
         setLoginRequired(false);
-        onServerConnectionReady();
+        setServerConnectionReady(true);
         serverConnection.getServerStatus();
-    }, [setLoginRequired, updateStatus]);
+    }, [setLoginRequired, setServerConnectionReady]);
 
     return (
         <>
