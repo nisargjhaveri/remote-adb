@@ -18,27 +18,31 @@ declare module 'express-session' {
     }
 }
 
+export type ServerConfiguration = {
+    password?: string;
+}
+
 export class Server {
     private listenOptions: net.ListenOptions;
-    private httpsOptions: https.ServerOptions;
-    private password: string|undefined;
+    private httpsOptions: https.ServerOptions|undefined;
+    private serverConfig: ServerConfiguration|undefined;
 
     private serverAddress: net.AddressInfo;
     private server: (http.Server|https.Server) & stoppable.WithStop;
 
     private wsKeepaliveInterval: NodeJS.Timer = undefined;
 
-    constructor(listenOptions: net.ListenOptions, httpsOptions?: https.ServerOptions, password?: string) {
+    constructor(listenOptions: net.ListenOptions, httpsOptions?: https.ServerOptions, serverConfig?: ServerConfiguration) {
         this.listenOptions = listenOptions;
         this.httpsOptions = httpsOptions;
-        this.password = password
+        this.serverConfig = serverConfig
     }
 
     private get loginSupported() {
-        return !!this.password;
+        return !!this.serverConfig?.password;
     }
 
-    private loginRequried(req: Request) {
+    private loginRequired(req: Request) {
         return this.loginSupported && !req.session.userId;
     } 
 
@@ -67,13 +71,13 @@ export class Server {
             res.json({
                 result: "OK",
                 loginSupported: this.loginSupported,
-                loginRequired: this.loginRequried(req)
+                loginRequired: this.loginRequired(req)
             });
             res.end();
         });
 
         app.post('/login', (req, res) => {
-            if (!this.loginSupported || req.body.password === this.password) {
+            if (!this.loginSupported || req.body.password === this.serverConfig.password) {
                 req.session.regenerate(() => {
                     req.session.userId = "user";
 
@@ -110,7 +114,7 @@ export class Server {
         server.on('upgrade', (request: any, socket: net.Socket, head) => {
             // This function is not defined on purpose. Implement it with your own logic.
             sessionParser(request, {} as any, () => {
-                if (this.loginRequried(request)) {
+                if (this.loginRequired(request)) {
                     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
                     socket.destroy();
                     return;

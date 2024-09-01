@@ -61,6 +61,8 @@ export const commandServer = {
 
         const listenOptions = { port: args.port, host: args.host };
 
-        new Server(listenOptions, httpsOptions, args.password).start();
+        new Server(listenOptions, httpsOptions, {
+            password: args.password
+        }).start();
     }
 } as CommandModule;
