@@ -24,6 +24,7 @@ const serverConnection = new ServerConnection(window.location.href);
 
 export function App() {
     let [devices, setDevices] = useState<RemoteAdbDevice[]>([]);
+    let [serverConnectionReady, setServerConnectionReady] = useState(false);
     let [autoConnect, setAutoConnect] = useState(() => localStorage?.getItem(StoredItemKeys.SettingsAutoConnectDevices) === "true");
 
     useEffect(() => {
@@ -46,7 +47,7 @@ export function App() {
                 <Stack.Item align="center">
                     <Text variant="mediumPlus" style={{color: NeutralColors.gray130}}>Share connected Android devices for debugging on the server</Text>
                 </Stack.Item>
-                <Status serverConnection={serverConnection} />
+                <Status serverConnection={serverConnection} onServerConnectionReady={() => setServerConnectionReady(true)} />
                 <Separator>Connected Devices</Separator>
                 <Stack horizontal tokens={{childrenGap: 'm', padding: 's'}} horizontalAlign="center" verticalAlign="center">
                     <Text>Device not visible in the list below?</Text>
@@ -61,7 +62,7 @@ export function App() {
                     </Stack.Item>
                 )}
                 <Stack tokens={{childrenGap: 'l2', padding: 's'}}>
-                    {devices.map((device) => (<Device device={device} key={device.serial} serverConnection={serverConnection} autoConnect={autoConnect} />))}
+                    {devices.map((device) => (<Device device={device} key={device.serial} serverConnection={serverConnection} autoConnect={autoConnect} serverConnectionReady={serverConnectionReady} />))}
                 </Stack>
             </Stack>
         </div>

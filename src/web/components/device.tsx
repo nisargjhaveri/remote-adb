@@ -74,17 +74,21 @@ function CommunicationSpeed(props: {device: RemoteAdbDevice}) {
     )
 }
 
-export function Device(props: {device: RemoteAdbDevice, serverConnection: ServerConnection, autoConnect: boolean}) {
+export function Device(props: {device: RemoteAdbDevice, serverConnection: ServerConnection, autoConnect: boolean, serverConnectionReady: boolean}) {
     const [error, setError] = useState(undefined);
     const [isConnecting, setConnecting] = useState(false);
 
-    const { device, serverConnection, autoConnect } = props;
+    const { device, serverConnection, autoConnect, serverConnectionReady } = props;
 
     useEffect(() => {
+        if (!serverConnectionReady) {
+            return;
+        }
+
         if (autoConnect && !device.connected && !isConnecting) {
             onConnect();
         }
-    }, [autoConnect]);
+    }, [autoConnect, serverConnectionReady]);
 
     const onConnect = useCallback(async () => {
         let connecting = true;

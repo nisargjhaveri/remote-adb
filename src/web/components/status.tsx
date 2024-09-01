@@ -114,7 +114,7 @@ function StatusItem(props: {type: MessageBarType, message: string, muted?: boole
     );
 }
 
-export function Status(props: {serverConnection: ServerConnection}) {
+export function Status(props: {serverConnection: ServerConnection, onServerConnectionReady: () => void}) {
     const [initialized, setInitialized] = useState(false);
 
     const [statusError, setStatusError] = useState(undefined);
@@ -123,7 +123,7 @@ export function Status(props: {serverConnection: ServerConnection}) {
 
     const [showLoginDialog, setShowLoginDialog] = useState(false);
 
-    const { serverConnection } = props;
+    const { serverConnection, onServerConnectionReady } = props;
 
     const updateStatus = useCallback(async (status: ServerStatus) => {
         if (status._error) {
@@ -145,13 +145,18 @@ export function Status(props: {serverConnection: ServerConnection}) {
 
     // Show login dialog once initialized
     useEffect(() => {
-        if (initialized && loginSupported && loginRequired) {
-            setShowLoginDialog(true);
+        if (initialized) {
+            if (loginSupported && loginRequired) {
+                setShowLoginDialog(true);
+            } else {
+                onServerConnectionReady();
+            }
         }
     }, [initialized]);
 
     const onLoginSuccess = useCallback(() => {
         setLoginRequired(false);
+        onServerConnectionReady();
         serverConnection.getServerStatus();
     }, [setLoginRequired, updateStatus]);
 
