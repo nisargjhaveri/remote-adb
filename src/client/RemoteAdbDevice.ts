@@ -2,11 +2,15 @@ import { EventEmitter } from "events";
 import logger from '../common/logger';
 import { AdbTransport } from "./AdbTransport";
 import { ServerConnection, WebSocket } from "./ServerConnection";
+import { ClientHandshake, getRemoteHandshake, ServerHandshake } from "../common/handshake";
 
 
 export class RemoteAdbDevice extends EventEmitter {
     private backend: AdbTransport;
     private ws: WebSocket;
+    private serverHandshake: ServerHandshake;
+
+    private _connecting: boolean = false;
 
     get serial() {
         return this.backend.serial;
@@ -14,6 +18,10 @@ export class RemoteAdbDevice extends EventEmitter {
 
     get name() {
         return this.backend.name;
+    }
+
+    get remoteSerial() {
+        return this.serverHandshake.serial;
     }
 
     get bytesTransferred() {
@@ -27,53 +35,83 @@ export class RemoteAdbDevice extends EventEmitter {
     }
 
     get connected() {
-        return this.backend.connected && this.ws?.readyState == WebSocket.OPEN;
+        return this.backend.connected && this.ws?.readyState == WebSocket.OPEN && !this._connecting;
+    }
+
+    get connecting() {
+        return this._connecting;
     }
 
     connect = async (serverConnection: ServerConnection) => {
-        // Connect with the backend
-        await this.backend.connect();
-        logger.log(this.backend.serial, `${this.backend.type} connected`);
-        this.backend.ondisconnect(() => {
-            logger.log(this.backend.serial, `${this.backend.type} closed. Closing WebSocket.`);
-            this.disconnectWebSocket(true);
-        });
+        this._connecting = true;
 
-        // Connect to WebSocket
-        this.ws = await new Promise<WebSocket>(async (resolve, reject) => {
-            const ws = await serverConnection.createWebSocket("");
+        try {
+            // Connect with the backend
+            await this.backend.connect();
+            logger.log(this.backend.serial, `${this.backend.type} connected`);
+            this.backend.ondisconnect(() => {
+                logger.log(this.backend.serial, `${this.backend.type} closed. Closing WebSocket.`);
+                this.disconnectWebSocket(true);
+            });
 
-            ws.binaryType = "arraybuffer";
+            // Connect to WebSocket
+            this.ws = await new Promise<WebSocket>(async (resolve, reject) => {
+                const ws = await serverConnection.createWebSocket("");
 
-            let resolved = false;
-            ws.onopen = () => {
-                resolved = true;
-                resolve(ws)
+                ws.binaryType = "arraybuffer";
+
+                let resolved = false;
+                ws.onopen = () => {
+                    resolved = true;
+                    resolve(ws)
+                }
+                ws.onerror = () => {}   // This is required in node to not crash on error
+                ws.onclose = () => {
+                    if (!resolved) { reject(new Error("Error connecting to WebSocket")); }
+                }
+            }).catch(async (e) => {
+                await this.disconnectBackend(false);
+
+                throw e;
+            });
+
+            this.ws.onerror = (e) => {
+                logger.log(this.backend.serial, `WebSocket error: ${e}`);
             }
-            ws.onerror = () => {}   // This is required in node to not crash on error
-            ws.onclose = () => {
-                if (!resolved) { reject(new Error("Error connecting to WebSocket")); }
+
+            this.ws.onclose = (e) => {
+                logger.log(this.backend.serial, `WebSocket closed (code: ${e.code}${e.reason ? `, reason: ${e.reason}` : ""}). Closing device.`);
+                this.disconnectBackend(true);
             }
-        }).catch(async (e) => {
+
+            logger.log(this.backend.serial, "WebSocket connected. Waiting for handshake...");
+
+            // Send handshake data
+            const handshakeData: ClientHandshake = {
+                type: "handshake",
+                name: this.name,
+                serial: this.serial
+            }
+
+            this.ws.send(JSON.stringify(handshakeData));
+
+            // Wait for the handshake response
+            this.serverHandshake = await getRemoteHandshake<ServerHandshake>(this.ws);
+
+            logger.log(this.backend.serial, `Connected as ${this.remoteSerial}`);
+
+            await this.backend.pipe(this.ws);
+
+            this.emit("connected", this);
+        } catch(e) {
+            logger.log(this.backend.serial, `Error connecting: ${e.message}`);
             await this.disconnectBackend(false);
+            await this.disconnectWebSocket(false);
 
             throw e;
-        });
-
-        this.ws.onerror = (e) => {
-            logger.log(this.backend.serial, `WebSocket error: ${e}`);
+        } finally {
+            this._connecting = false;
         }
-
-        this.ws.onclose = (e) => {
-            logger.log(this.backend.serial, `WebSocket closed (code: ${e.code}${e.reason ? `, reason: ${e.reason}` : ""}). Closing device.`);
-            this.disconnectBackend(true);
-        }
-
-        logger.log(this.backend.serial, "WebSocket connected");
-
-        await this.backend.pipe(this.ws);
-
-        this.emit("connected", this);
     }
 
     private disconnectBackend = async (emit: boolean) => {

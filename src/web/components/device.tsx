@@ -85,7 +85,7 @@ export function Device(props: {device: RemoteAdbDevice, serverConnection: Server
             return;
         }
 
-        if (autoConnect && !device.connected && !isConnecting) {
+        if (autoConnect && !device.connected && !device.connecting && !isConnecting) {
             onConnect();
         }
     }, [autoConnect, serverConnectionReady]);
@@ -148,7 +148,7 @@ export function Device(props: {device: RemoteAdbDevice, serverConnection: Server
                                     messageBarType={MessageBarType.success}
                                     isMultiline={false}
                                 >
-                                    Connected
+                                    Connected as <code style={{userSelect: 'all'}}>{device.remoteSerial}</code>
                                 </MessageBar>) :
                             isConnecting ?
                                 (<MessageBar isMultiline={false}>

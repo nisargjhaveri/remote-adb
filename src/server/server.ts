@@ -11,6 +11,7 @@ import stoppable from 'stoppable';
 
 import logger from '../common/logger';
 import { monitorAdbServer, addAdbDevice, removeAdbDevice } from './adbConnection';
+import { ClientHandshake, getRemoteHandshake, ServerHandshake } from '../common/handshake';
 
 declare module 'express-session' {
     interface SessionData {
@@ -203,36 +204,50 @@ export class Server {
         return this.server && this.server.listening;
     }
 
-    private handleWsConnection = (ws: WebSocket) => {
-        logger.log("Got a socket connection");
+    private handleWsConnection = async (ws: WebSocket) => {
+        logger.log("Got new web socket connection. Waiting for handshake...");
 
-        let wsStream = WebSocket.createWebSocketStream(ws);
-        wsStream.on("error", () => {
-            // Do nothing
-            // Sometimes this can happen when trying to write to the socket after it is closed in the process of closing the connection. Ignore.
-        });
+        try {
+            let handshakeData: ClientHandshake = await getRemoteHandshake<ClientHandshake>(ws);
 
-        let port: Number;
-        let server = net.createServer((socket: net.Socket) => {
-            socket.pipe(wsStream, {end: false}).pipe(socket);
-
-            socket.on("close", (hadError) => {
-                socket.unpipe(wsStream);
-                wsStream.unpipe(socket);
+            let wsStream = WebSocket.createWebSocketStream(ws);
+            wsStream.on("error", () => {
+                // Do nothing
+                // Sometimes this can happen when trying to write to the socket after it is closed in the process of closing the connection. Ignore.
             });
-        }).listen(0, () => {
-            port = (server.address() as net.AddressInfo).port;
-            logger.log(port, "New device");
 
-            addAdbDevice(port);
-        });
+            let port: number;
+            let server = net.createServer((socket: net.Socket) => {
+                socket.pipe(wsStream, {end: false}).pipe(socket);
 
-        ws.on("close", () => {
-            logger.log(port, "Device lost");
+                socket.on("close", (hadError) => {
+                    socket.unpipe(wsStream);
+                    wsStream.unpipe(socket);
+                });
+            }).listen(0, () => {
+                port = (server.address() as net.AddressInfo).port;
+                logger.log(port, `New device (${handshakeData.name}, ${handshakeData.serial})`);
 
-            server.close();
-            removeAdbDevice(port);
-        });
+                const handshakeResponse: ServerHandshake = {
+                    type: "handshake",
+                    serial: `127.0.0.1:${port}`,
+                }
+
+                ws.send(JSON.stringify(handshakeResponse));
+
+                addAdbDevice(port);
+            });
+
+            ws.on("close", () => {
+                logger.log(port, `Device lost (${handshakeData.name}, ${handshakeData.serial})`);
+
+                server.close();
+                removeAdbDevice(port);
+            });
+        } catch(e) {
+            logger.error(`Error connecting: ${e.message}`);
+            ws.close();
+        }
     };
 
     private getServerAddress() {
