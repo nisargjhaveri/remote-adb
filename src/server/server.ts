@@ -19,7 +19,18 @@ declare module 'express-session' {
 }
 
 export type ServerConfiguration = {
+    /**
+     * Password required to connect to the server.
+     * When provided, the server will require clients to authenticate using this password.
+     * If not set, no authentication is required.
+     */
     password?: string;
+
+    /**
+     * Path to the static files to serve.
+     * Useful when remote-adb is bundled and the static files are not in the default location, or to use a custom web client.
+     */
+    staticClientPath?: string;
 }
 
 export class Server {
@@ -106,7 +117,7 @@ export class Server {
         });
 
         // Serve static files from client
-        app.use(express.static(path.join(__dirname, '../web')));
+        app.use(express.static(this.serverConfig?.staticClientPath ?? path.join(__dirname, '../web')));
 
         // Setup web socket server
         wss.on('connection', this.handleWsConnection);
