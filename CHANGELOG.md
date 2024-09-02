@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v3.0.0
+- Add option to auto-connect devices in the web interface
+- Add cli option to specify host to bind
+- Add handshake when connection starts, exchange local and remote device information.
+- **Breaking changes (only for using as a library):**
+  - Properly define subpath exports for the package for programmatic use
+  - Change `Server` interface to be more flexible and extensible
+
 ## v2.3.0
 - Allow listing and connecting to emulator with 'emulator-' serial in cli client
 - More reliable websocket connection on some proxies using periodic ping

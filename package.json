@@ -1,6 +1,6 @@
 {
   "name": "remote-adb",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "description": "Share Android devices for debugging on a remote machine via an easy web interface",
   "license": "MIT",
   "repository": "github:nisargjhaveri/remote-adb",
