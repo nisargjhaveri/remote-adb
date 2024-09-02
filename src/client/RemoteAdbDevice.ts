@@ -12,16 +12,16 @@ export class RemoteAdbDevice extends EventEmitter {
 
     private _connecting: boolean = false;
 
-    get serial() {
+    get serial(): string {
         return this.backend.serial;
     }
 
-    get name() {
+    get name(): string {
         return this.backend.name;
     }
 
-    get remoteSerial() {
-        return this.serverHandshake.serial;
+    get remoteSerial(): string|undefined {
+        return this.serverHandshake?.serial;
     }
 
     get bytesTransferred() {
@@ -34,11 +34,11 @@ export class RemoteAdbDevice extends EventEmitter {
         this.backend = backend;
     }
 
-    get connected() {
+    get connected(): boolean {
         return this.backend.connected && this.ws?.readyState == WebSocket.OPEN && !this._connecting;
     }
 
-    get connecting() {
+    get connecting(): boolean {
         return this._connecting;
     }
 
