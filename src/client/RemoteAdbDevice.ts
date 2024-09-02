@@ -124,6 +124,10 @@ export class RemoteAdbDevice extends EventEmitter {
     }
 
     private disconnectWebSocket = async (emit: boolean) => {
+        if (!this.ws) {
+            return;
+        }
+
         this.ws.onclose = undefined;
         this.ws.close();
         logger.log(this.backend.serial, `WebSocket closed`);
