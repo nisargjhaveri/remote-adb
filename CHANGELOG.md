@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v3.0.1
+- Minor improvement in error handling on connection
+
 ## v3.0.0
 - Add option to auto-connect devices in the web interface
 - Add cli option to specify host to bind
