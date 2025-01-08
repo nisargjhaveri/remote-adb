@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v3.1.0
+- Add timeout for fetching server status
+- Fix issue where messages were missed after handshake
+- npm audit fix
+
 ## v3.0.1
 - Minor improvement in error handling on connection
 
