@@ -8,6 +8,7 @@ import session from 'express-session';
 import bodyParser from 'body-parser';
 import WebSocket from 'ws';
 import stoppable from 'stoppable';
+import type { Duplex } from 'stream';
 
 import logger from '../common/logger';
 import { monitorAdbServer, addAdbDevice, removeAdbDevice } from './adbConnection';
@@ -208,12 +209,14 @@ export class Server {
         logger.log("Got new web socket connection. Waiting for handshake...");
 
         try {
-            let handshakeData: ClientHandshake = await getRemoteHandshake<ClientHandshake>(ws);
+            let wsStream: Duplex;
 
-            let wsStream = WebSocket.createWebSocketStream(ws);
-            wsStream.on("error", () => {
-                // Do nothing
-                // Sometimes this can happen when trying to write to the socket after it is closed in the process of closing the connection. Ignore.
+            let handshakeData: ClientHandshake = await getRemoteHandshake<ClientHandshake>(ws, async (handshake: ClientHandshake) => {
+                wsStream = WebSocket.createWebSocketStream(ws);
+                wsStream.on("error", () => {
+                    // Do nothing
+                    // Sometimes this can happen when trying to write to the socket after it is closed in the process of closing the connection. Ignore.
+                });
             });
 
             let port: number;

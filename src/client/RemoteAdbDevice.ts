@@ -96,11 +96,12 @@ export class RemoteAdbDevice extends EventEmitter {
             this.ws.send(JSON.stringify(handshakeData));
 
             // Wait for the handshake response
-            this.serverHandshake = await getRemoteHandshake<ServerHandshake>(this.ws);
+            await getRemoteHandshake<ServerHandshake>(this.ws, async (handshake) => {
+                this.serverHandshake = handshake;
+                logger.log(this.backend.serial, `Connected as ${this.remoteSerial}`);
 
-            logger.log(this.backend.serial, `Connected as ${this.remoteSerial}`);
-
-            await this.backend.pipe(this.ws);
+                await this.backend.pipe(this.ws);
+            });
 
             this.emit("connected", this);
         } catch(e) {
