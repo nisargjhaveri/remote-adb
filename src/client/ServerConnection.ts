@@ -97,9 +97,9 @@ export class ServerConnection {
         }
     }
 
-    getServerStatus = async (): Promise<ServerStatus> => {
+    getServerStatus = async (timeout: number = 10000): Promise<ServerStatus> => {
         await this.lastServerStatusPromise
-        this.lastServerStatusPromise = this.fetchServerStatus();
+        this.lastServerStatusPromise = this.fetchServerStatus(timeout);
 
         const status = await this.lastServerStatusPromise;
 
@@ -114,12 +114,13 @@ export class ServerConnection {
         setTimeout(this.updateStatusLoop, 5000);
     }
 
-    private fetchServerStatus = async (): Promise<ServerStatus> => {
+    private fetchServerStatus = async (timeout: number): Promise<ServerStatus> => {
         try {
             const res = await this.fetch(url.status, {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                signal: AbortSignal.timeout(timeout)
             });
 
             if (res.status !== 200) {
