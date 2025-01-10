@@ -140,11 +140,14 @@ export class AdbTcpTransport implements AdbTransport {
 
     async dispose(): Promise<void> {
         this._connected = false;
-        this.socket.off("close", this.handleClose);
         this.events.removeAllListeners();
 
-        return new Promise((resolve, reject) => {
-            this.socket.end(resolve);
-        })
+        if (this.socket) {
+            this.socket.off("close", this.handleClose);
+
+            return new Promise((resolve, reject) => {
+                this.socket.end(resolve);
+            })
+        }
     }
 }
