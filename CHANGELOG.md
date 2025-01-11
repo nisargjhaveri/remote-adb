@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v3.1.1
+- Minor: Better error handling in dispose of AdbTcpTransport
+
 ## v3.1.0
 - Add timeout for fetching server status
 - Fix issue where messages were missed after handshake
