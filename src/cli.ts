@@ -2,6 +2,7 @@
 
 import { commandServer } from './server/command';
 import { commandConnect, commandDevices } from './client/command';
+import { commandBenchmark } from './benchmark/command';
 
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -11,6 +12,7 @@ yargs(hideBin(process.argv))
     .command(commandServer)
     .command(commandDevices)
     .command(commandConnect)
+    .command(commandBenchmark)
     .parserConfiguration({
         'duplicate-arguments-array': false,
     })

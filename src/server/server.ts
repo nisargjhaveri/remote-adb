@@ -33,6 +33,11 @@ export type ServerConfiguration = {
      * Useful when remote-adb is bundled and the static files are not in the default location, or to use a custom web client.
      */
     staticClientPath?: string;
+
+    deviceCallbacks?: {
+        onDeviceConnected?: (port: number) => void,
+        onDeviceDisconnected?: (port: number) => void,
+    }
 }
 
 export class Server {
@@ -170,7 +175,7 @@ export class Server {
         logger.log(`Started listening on ${url}`);
 
         // Start monitoring adb server
-        monitorAdbServer();
+        // monitorAdbServer();
 
         return url;
     }
@@ -221,6 +226,7 @@ export class Server {
 
             let port: number;
             let server = net.createServer((socket: net.Socket) => {
+                socket.setNoDelay();
                 socket.pipe(wsStream, {end: false}).pipe(socket);
 
                 socket.on("close", (hadError) => {
@@ -238,14 +244,16 @@ export class Server {
 
                 ws.send(JSON.stringify(handshakeResponse));
 
-                addAdbDevice(port);
+                // addAdbDevice(port);
+                this.serverConfig?.deviceCallbacks?.onDeviceConnected?.(port);
             });
 
             ws.on("close", () => {
                 logger.log(port, `Device lost (${handshakeData.name}, ${handshakeData.serial})`);
 
                 server.close();
-                removeAdbDevice(port);
+                // removeAdbDevice(port);
+                this.serverConfig?.deviceCallbacks?.onDeviceConnected?.(port);
             });
         } catch(e) {
             logger.error(`Error connecting: ${e.message}`);

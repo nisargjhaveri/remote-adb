@@ -50,7 +50,7 @@ export class AdbTransportProtocolHandler {
                     buffer = await pull(payload_length);
                     await push(buffer);
 
-                    logger.log(loggerConfig.tag, loggerConfig.direction, `payload ${payload_length} bytes`);
+                    logger.log(loggerConfig.tag, loggerConfig.direction, `payload ${payload_length} bytes`, new TextDecoder().decode(buffer));
                     payload_length -= buffer.byteLength;
                 }
             }
@@ -114,7 +114,7 @@ export class AdbTransportProtocolHandler {
                     }
                     else {
                         await push(data);
-                        logger.log(loggerConfig.tag, loggerConfig.direction, `payload ${payload_length} bytes`);
+                        logger.log(loggerConfig.tag, loggerConfig.direction, `payload ${payload_length} bytes`, new TextDecoder().decode(data));
 
                         payload_length -= data.byteLength;
 
@@ -133,6 +133,7 @@ export class AdbTransportProtocolHandler {
         }
 
         return (data: ArrayBuffer) => {
+            // logger.log(loggerConfig.tag, loggerConfig.direction, new TextDecoder().decode(data));
             lastPromise = lastPromise.then(async () => { await handleWriteData(data); });
         }
     }
