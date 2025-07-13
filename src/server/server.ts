@@ -205,6 +205,28 @@ export class Server {
         return this.server && this.server.listening;
     }
 
+    private startDeviceServer(server: net.Server, listenCallback: () => void): void {
+        const host: string = "127.0.0.1";
+        let port: number = 33450;
+
+        const errorCallback = (e: NodeJS.ErrnoException) => {
+            if (e.code === 'EADDRINUSE') {
+                port++;
+                server.close();
+                server.listen(port, host);
+            }
+        };
+
+        server.on('error', errorCallback);
+
+        server.on('listening', () => {
+            server.off('error', errorCallback);
+            listenCallback();
+        });
+
+        server.listen(port, host);
+    }
+
     private handleWsConnection = async (ws: WebSocket) => {
         logger.log("Got new web socket connection. Waiting for handshake...");
 
@@ -227,7 +249,9 @@ export class Server {
                     socket.unpipe(wsStream);
                     wsStream.unpipe(socket);
                 });
-            }).listen(0, () => {
+            });
+
+            this.startDeviceServer(server, () => {
                 port = (server.address() as net.AddressInfo).port;
                 logger.log(port, `New device (${handshakeData.name}, ${handshakeData.serial})`);
 
