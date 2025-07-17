@@ -125,7 +125,6 @@ export class Server {
         wss.on('connection', this.handleWsConnection);
 
         server.on('upgrade', (request: any, socket: net.Socket, head) => {
-            // This function is not defined on purpose. Implement it with your own logic.
             sessionParser(request, {} as any, () => {
                 if (this.loginRequired(request)) {
                     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
