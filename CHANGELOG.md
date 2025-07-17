@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## v3.2.0
+- Assign predictable ports for connected devices to have consistent serial in adb
+
 ## v3.1.1
 - Minor: Better error handling in dispose of AdbTcpTransport
 
